@@ -44,17 +44,6 @@ export function CaptureFlow({
   }, [preview]);
 
   useEffect(() => {
-    if (mode === "scan") {
-      const id = window.setTimeout(() => cameraRef.current?.click(), 250);
-      return () => window.clearTimeout(id);
-    }
-    if (mode === "import") {
-      const id = window.setTimeout(() => libraryRef.current?.click(), 250);
-      return () => window.clearTimeout(id);
-    }
-  }, [mode]);
-
-  useEffect(() => {
     if (step !== "processing") return;
     const id = window.setInterval(() => {
       setProcessIndex((i) => Math.min(i + 1, PROCESS_STEPS.length - 1));
@@ -119,16 +108,19 @@ export function CaptureFlow({
               <SourceButton
                 title="Camera"
                 subtitle="Take a photo now"
+                preferred={mode === "scan"}
                 onClick={() => cameraRef.current?.click()}
               />
               <SourceButton
                 title="Photos"
                 subtitle="Choose from library"
+                preferred={mode === "import"}
                 onClick={() => libraryRef.current?.click()}
               />
               <SourceButton
                 title="Files"
                 subtitle="Import from Files"
+                preferred={false}
                 onClick={() => libraryRef.current?.click()}
               />
             </div>
@@ -282,17 +274,23 @@ export function CaptureFlow({
 function SourceButton({
   title,
   subtitle,
+  preferred,
   onClick,
 }: {
   title: string;
   subtitle: string;
+  preferred?: boolean;
   onClick: () => void;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="rounded-2xl border border-rule bg-paper px-4 py-4 text-left transition hover:border-accent/40"
+      className={`rounded-2xl border px-4 py-4 text-left transition ${
+        preferred
+          ? "border-accent/40 bg-accent-soft"
+          : "border-rule bg-paper hover:border-accent/40"
+      }`}
     >
       <p className="text-sm font-semibold text-ink">{title}</p>
       <p className="mt-0.5 text-xs text-muted">{subtitle}</p>

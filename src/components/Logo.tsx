@@ -5,9 +5,15 @@ export function LogoMark({ size = 40 }: { size?: number }) {
       style={{ width: size, height: size }}
       aria-hidden
     >
-      <svg width={size * 0.48} height={size * 0.48} viewBox="0 0 24 24" fill="none">
+      <svg
+        width={size * 0.5}
+        height={size * 0.5}
+        viewBox="0 0 24 24"
+        fill="none"
+        aria-hidden
+      >
         <path
-          d="M7 4h4.2c3.4 0 5.8 2.1 5.8 5.3 0 2.2-1.1 3.9-3 4.7L18 20h-3.2l-3.6-5.4H10V20H7V4Zm3 7.3h1.1c1.8 0 2.9-1 2.9-2.5S12.9 6.4 11.1 6.4H10v4.9Z"
+          d="M6.5 4h3.2v6.35L16.4 4h3.9l-7.15 7.2L20.8 20h-3.95l-6.15-7.55V20H6.5V4Z"
           fill="currentColor"
         />
       </svg>
