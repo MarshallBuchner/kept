@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { IconFilter, IconFolder, IconMenu, IconSearch } from "@/components/Icons";
 import { loadDocs } from "@/lib/storage";
 import {
   CATEGORY_LABEL,
@@ -33,19 +34,34 @@ export function ArchiveScreen() {
         doc.facts.merchant?.toLowerCase().includes(q);
       if (!matchesQuery) return false;
       if (filter === "all") return true;
-      if ((DOC_CATEGORIES as readonly string[]).includes(filter)) {
-        return doc.category === filter;
-      }
+      if ((DOC_CATEGORIES as readonly string[]).includes(filter)) return doc.category === filter;
       return doc.tags.includes(filter as DocTag);
     });
   }, [docs, filter, query]);
 
-  const folders = useMemo(() => {
-    return DOC_CATEGORIES.map((category) => ({
-      category,
-      count: docs.filter((d) => d.category === category).length,
-    }));
+  const folderRows = useMemo(() => {
+    return [
+      { id: "all" as const, label: "All Documents", count: docs.length },
+      ...DOC_CATEGORIES.map((category) => ({
+        id: category,
+        label: `${CATEGORY_LABEL[category]}s`,
+        count: docs.filter((d) => d.category === category).length,
+      })),
+      ...DOC_TAGS.map((tag) => ({
+        id: tag,
+        label: tag,
+        count: docs.filter((d) => d.tags.includes(tag)).length,
+      })),
+    ];
   }, [docs]);
+
+  const chips: { id: Filter; label: string }[] = [
+    { id: "all", label: "All" },
+    { id: "receipt", label: "Receipts" },
+    { id: "invoice", label: "Invoices" },
+    { id: "note", label: "Notes" },
+    ...DOC_TAGS.map((t) => ({ id: t as Filter, label: t })),
+  ];
 
   const grouped = useMemo(() => {
     const map = new Map<string, KeptDoc[]>();
@@ -61,32 +77,34 @@ export function ArchiveScreen() {
     return [...map.entries()];
   }, [filtered]);
 
-  const chips: { id: Filter; label: string }[] = [
-    { id: "all", label: "All" },
-    ...DOC_CATEGORIES.map((c) => ({ id: c as Filter, label: CATEGORY_LABEL[c] })),
-    ...DOC_TAGS.map((t) => ({ id: t as Filter, label: t })),
-  ];
-
   return (
-    <div className="flex flex-col gap-5 px-5 pb-6 pt-8 animate-fade-up">
-      <header>
-        <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold tracking-tight">
-          Archive
-        </h1>
-        <p className="mt-1 text-sm text-muted">Searchable files, still on this device.</p>
+    <div className="flex flex-col gap-5 px-5 pb-4 pt-3 animate-fade-up">
+      <header className="grid grid-cols-[40px_1fr_40px] items-center">
+        <button type="button" className="flex h-10 w-10 items-center justify-center" aria-label="Menu">
+          <IconMenu />
+        </button>
+        <h1 className="text-center text-[20px] font-semibold">Archive</h1>
+        <span />
       </header>
 
-      <label className="flex items-center gap-2 rounded-2xl border border-rule bg-card px-4 py-3">
-        <span className="text-muted" aria-hidden>
-          ⌕
-        </span>
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search receipts, notes, totals…"
-          className="w-full bg-transparent text-sm outline-none placeholder:text-muted"
-        />
-      </label>
+      <div className="flex items-center gap-2">
+        <label className="flex flex-1 items-center gap-2 rounded-full bg-chip px-4 py-3">
+          <IconSearch className="text-muted" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search documents..."
+            className="w-full bg-transparent text-[14px] outline-none placeholder:text-muted"
+          />
+        </label>
+        <button
+          type="button"
+          className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-chip text-ink"
+          aria-label="Filters"
+        >
+          <IconFilter />
+        </button>
+      </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1">
         {chips.map((chip) => (
@@ -94,10 +112,8 @@ export function ArchiveScreen() {
             key={chip.id}
             type="button"
             onClick={() => setFilter(chip.id)}
-            className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium ${
-              filter === chip.id
-                ? "bg-accent text-white"
-                : "bg-card text-muted ring-1 ring-rule"
+            className={`shrink-0 rounded-full px-3.5 py-2 text-[13px] font-medium ${
+              filter === chip.id ? "bg-accent text-white" : "bg-chip text-ink"
             }`}
           >
             {chip.label}
@@ -105,48 +121,47 @@ export function ArchiveScreen() {
         ))}
       </div>
 
-      <section className="rounded-3xl border border-rule bg-card p-4">
-        <h2 className="text-sm font-semibold text-ink">Folders</h2>
-        <ul className="mt-3 grid grid-cols-2 gap-2">
-          {folders.map((folder) => (
-            <button
-              key={folder.category}
-              type="button"
-              onClick={() => setFilter(folder.category)}
-              className="rounded-2xl bg-paper px-3 py-3 text-left ring-1 ring-rule"
-            >
-              <p className="text-sm font-medium text-ink">{CATEGORY_LABEL[folder.category]}</p>
-              <p className="mt-1 text-xs text-muted">{folder.count} kept</p>
-            </button>
+      <section>
+        <h2 className="text-[16px] font-semibold text-ink">Folders</h2>
+        <ul className="mt-3 overflow-hidden rounded-[18px] bg-card ring-1 ring-rule">
+          {folderRows.slice(0, 7).map((folder, index) => (
+            <li key={folder.id} className={index > 0 ? "border-t border-rule" : ""}>
+              <button
+                type="button"
+                onClick={() => setFilter(folder.id)}
+                className="flex w-full items-center gap-3 px-4 py-3.5 text-left"
+              >
+                <IconFolder className="text-ink" />
+                <span className="flex-1 text-[14px] text-ink">{folder.label}</span>
+                <span className="text-[13px] text-muted">{folder.count}</span>
+              </button>
+            </li>
           ))}
         </ul>
       </section>
 
-      {grouped.length === 0 ? (
-        <p className="text-sm text-muted">No documents match that search.</p>
-      ) : (
+      {grouped.length > 0 ? (
         grouped.map(([month, items]) => (
-          <section key={month} className="flex flex-col gap-3">
-            <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-              {month}
-            </h3>
-            <ul className="flex flex-col gap-2">
-              {items.map((doc) => (
-                <li key={doc.id}>
-                  <Link
-                    href={`/d/${doc.id}`}
-                    className="flex items-center gap-3 rounded-2xl border border-rule bg-card p-3"
-                  >
+          <section key={month} className="flex flex-col gap-2">
+            <h3 className="text-[15px] font-semibold text-ink">{month}</h3>
+            <ul className="overflow-hidden rounded-[18px] bg-card ring-1 ring-rule">
+              {items.map((doc, index) => (
+                <li key={doc.id} className={index > 0 ? "border-t border-rule" : ""}>
+                  <Link href={`/d/${doc.id}`} className="flex items-center gap-3 px-3 py-3">
                     <img
                       src={doc.thumbnail}
                       alt=""
-                      className="h-12 w-12 rounded-xl object-cover"
+                      className="h-12 w-12 rounded-[10px] object-cover ring-1 ring-rule"
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold">{doc.title}</p>
-                      <p className="text-xs text-muted">
-                        {CATEGORY_LABEL[doc.category]}
-                        {doc.facts.total ? ` · $${doc.facts.total}` : ""}
+                      <p className="truncate text-[15px] font-semibold">{doc.title}</p>
+                      <p className="mt-0.5 text-[12px] text-muted">
+                        {doc.facts.total ? `$${doc.facts.total} · ` : ""}
+                        {new Date(doc.createdAt).toLocaleDateString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
                       </p>
                     </div>
                   </Link>
@@ -155,6 +170,8 @@ export function ArchiveScreen() {
             </ul>
           </section>
         ))
+      ) : (
+        <p className="text-[14px] text-muted">No documents match that search.</p>
       )}
     </div>
   );

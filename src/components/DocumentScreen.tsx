@@ -3,20 +3,22 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import {
+  IconBack,
+  IconCopy,
+  IconDocument,
+  IconFile,
+  IconMore,
+  IconShare,
+} from "@/components/Icons";
 import { encodeShare } from "@/lib/share";
 import { deleteDoc, getDoc, updateDoc } from "@/lib/storage";
-import {
-  CATEGORY_LABEL,
-  DOC_TAGS,
-  type DocTag,
-  type KeptDoc,
-} from "@/lib/types";
+import { CATEGORY_LABEL, DOC_TAGS, type DocTag, type KeptDoc } from "@/lib/types";
 
 export function DocumentScreen({ id }: { id: string }) {
   const router = useRouter();
   const [doc, setDoc] = useState<KeptDoc | null>(null);
-  const [tab, setTab] = useState<"document" | "text" | "summary">("summary");
-  const [copied, setCopied] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const [notes, setNotes] = useState("");
 
   useEffect(() => {
@@ -28,10 +30,8 @@ export function DocumentScreen({ id }: { id: string }) {
   if (!doc) {
     return (
       <main className="flex flex-col gap-4 px-5 py-16">
-        <p className="font-[family-name:var(--font-display)] text-2xl font-semibold">
-          Document missing
-        </p>
-        <Link href="/" className="text-sm text-accent">
+        <p className="text-[22px] font-semibold">Document missing</p>
+        <Link href="/" className="text-[14px] text-accent">
           Back home
         </Link>
       </main>
@@ -40,8 +40,8 @@ export function DocumentScreen({ id }: { id: string }) {
 
   async function copyText() {
     await navigator.clipboard.writeText(doc!.text);
-    setCopied("text");
-    window.setTimeout(() => setCopied(null), 1400);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1400);
   }
 
   async function shareDoc() {
@@ -55,8 +55,8 @@ export function DocumentScreen({ id }: { id: string }) {
       }
     }
     await navigator.clipboard.writeText(url);
-    setCopied("link");
-    window.setTimeout(() => setCopied(null), 1400);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1400);
   }
 
   function exportPdf() {
@@ -81,174 +81,150 @@ export function DocumentScreen({ id }: { id: string }) {
     router.replace("/archive");
   }
 
-  const lines = (doc.facts.items ?? []).map((item) => {
-    const dollar = item.lastIndexOf("$");
-    if (dollar <= 0) return { name: item, price: "" };
-    return {
-      name: item.slice(0, dollar).replace(/[\s·•¶¤£¢]+$/g, "").trim(),
-      price: item.slice(dollar),
-    };
-  });
-
   return (
-    <main className="flex flex-col gap-5 px-5 pb-10 pt-6 animate-fade-up print:px-0">
-      <header className="flex items-center justify-between print:hidden">
-        <Link href="/" className="text-sm text-muted">
-          ← Back
+    <main className="flex flex-col gap-5 px-5 pb-10 pt-3 animate-fade-up print:px-0">
+      <header className="grid grid-cols-[40px_1fr_40px] items-center print:hidden">
+        <Link href="/" className="flex h-10 w-10 items-center justify-center" aria-label="Back">
+          <IconBack />
         </Link>
-        <p className="text-sm font-semibold">{CATEGORY_LABEL[doc.category]}</p>
-        <button type="button" onClick={remove} className="text-sm text-muted">
-          Delete
+        <span />
+        <button type="button" onClick={remove} className="ml-auto flex h-10 w-10 items-center justify-center text-muted" aria-label="More">
+          <IconMore />
         </button>
       </header>
 
-      <div className="overflow-hidden rounded-3xl border border-rule bg-card">
+      <section className="flex flex-col items-center text-center">
         <img
           src={doc.image || doc.thumbnail}
           alt=""
-          className="max-h-64 w-full object-cover object-top"
+          className="h-24 w-24 rounded-[16px] object-cover ring-1 ring-rule"
         />
-        <div className="space-y-1 px-5 py-4">
-          <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold tracking-tight">
-            {doc.title}
-          </h1>
-          <p className="text-sm text-muted">
-            {doc.facts.total ? `$${doc.facts.total}` : "No total found"}
-            {doc.facts.dates[0] ? ` · ${doc.facts.dates[0]}` : ""}
-          </p>
-        </div>
-      </div>
+        <h1 className="mt-4 text-[22px] font-bold tracking-tight">{doc.title}</h1>
+        <p className="mt-1 text-[28px] font-bold tabular-nums">
+          {doc.facts.total ? `$${doc.facts.total}` : "—"}
+        </p>
+        <p className="mt-1 text-[13px] text-muted">
+          {doc.facts.dates[0] ??
+            new Date(doc.createdAt).toLocaleDateString(undefined, {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })}{" "}
+          · {CATEGORY_LABEL[doc.category]}
+        </p>
+      </section>
 
-      <div className="flex rounded-2xl bg-paper p-1 ring-1 ring-rule print:hidden">
-        {(
-          [
-            ["summary", "Summary"],
-            ["document", "Document"],
-            ["text", "Full text"],
-          ] as const
-        ).map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setTab(id)}
-            className={`flex-1 rounded-xl px-3 py-2 text-xs font-semibold ${
-              tab === id ? "bg-card text-accent shadow-sm" : "text-muted"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <section className="grid grid-cols-3 gap-3 print:hidden">
+        <ActionRound
+          label={copied ? "Copied" : "Copy Text"}
+          icon={<IconCopy />}
+          onClick={() => void copyText()}
+        />
+        <ActionRound label="Export PDF" icon={<IconFile />} onClick={exportPdf} />
+        <ActionRound label="Share" icon={<IconShare />} onClick={() => void shareDoc()} />
+      </section>
 
-      {tab === "summary" ? (
-        <section className="rounded-3xl border border-rule bg-card p-5">
-          <dl className="space-y-3 text-sm">
-            <Row label="Category" value={CATEGORY_LABEL[doc.category]} />
-            <Row label="Merchant" value={doc.facts.merchant ?? "—"} />
-            <Row label="Date" value={doc.facts.dates[0] ?? "—"} />
-            <Row
-              label={doc.facts.totalIsEstimate ? "About" : "Total"}
-              value={doc.facts.total ? `$${doc.facts.total}` : "—"}
-            />
-          </dl>
-          {lines.length > 0 ? (
-            <ul className="mt-5 space-y-2 border-t border-rule pt-4">
-              {lines.map((line) => (
-                <li key={`${line.name}-${line.price}`} className="flex justify-between gap-3 text-sm">
-                  <span>{line.name}</span>
-                  {line.price ? <span className="tabular-nums text-muted">{line.price}</span> : null}
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </section>
-      ) : null}
-
-      {tab === "document" ? (
-        <section className="overflow-hidden rounded-3xl border border-rule bg-card">
-          <img src={doc.image || doc.thumbnail} alt="" className="w-full object-contain" />
-        </section>
-      ) : null}
-
-      {tab === "text" ? (
-        <section className="rounded-3xl border border-rule bg-card p-5">
-          <div className="mb-3 flex justify-end print:hidden">
-            <button
-              type="button"
-              onClick={() => void copyText()}
-              className="rounded-full bg-accent-soft px-3 py-1.5 text-xs font-semibold text-accent"
-            >
-              {copied === "text" ? "Copied" : "Copy text"}
-            </button>
+      <section className="overflow-hidden rounded-[18px] bg-card ring-1 ring-rule">
+        <DetailRow icon={<IconDocument size={18} />} label="Category" value={CATEGORY_LABEL[doc.category]} />
+        <DetailRow icon={<IconFile size={18} />} label="Merchant" value={doc.facts.merchant ?? doc.title} />
+        <DetailRow
+          icon={<IconDocument size={18} />}
+          label="Date"
+          value={
+            doc.facts.dates[0] ??
+            new Date(doc.createdAt).toLocaleDateString(undefined, {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })
+          }
+        />
+        <DetailRow
+          icon={<IconDocument size={18} />}
+          label="Total"
+          value={doc.facts.total ? `$${doc.facts.total}` : "—"}
+          strong
+        />
+        <div className="border-t border-rule px-4 py-3">
+          <p className="text-[12px] text-muted">Tags</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {DOC_TAGS.map((tag) => {
+              const active = doc.tags.includes(tag);
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => toggleTag(tag)}
+                  className={`rounded-full px-3 py-1.5 text-[12px] font-medium ${
+                    active ? "bg-accent text-white" : "bg-chip text-ink"
+                  }`}
+                >
+                  {tag}
+                </button>
+              );
+            })}
           </div>
-          <pre className="whitespace-pre-wrap font-sans text-sm leading-6 text-ink">{doc.text}</pre>
-        </section>
-      ) : null}
-
-      <section className="rounded-3xl border border-rule bg-card p-5 print:hidden">
-        <h2 className="text-sm font-semibold">Tags</h2>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {DOC_TAGS.map((tag) => {
-            const active = doc.tags.includes(tag);
-            return (
-              <button
-                key={tag}
-                type="button"
-                onClick={() => toggleTag(tag)}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium ${
-                  active ? "bg-accent text-white" : "bg-paper text-muted ring-1 ring-rule"
-                }`}
-              >
-                {tag}
-              </button>
-            );
-          })}
+          {!doc.tags.length ? (
+            <p className="mt-2 text-[13px] text-muted">Add tags...</p>
+          ) : null}
         </div>
-        <label className="mt-4 block">
-          <span className="text-sm font-semibold">Notes</span>
+        <div className="border-t border-rule px-4 py-3 print:hidden">
+          <p className="text-[12px] text-muted">Notes</p>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             onBlur={saveNotes}
             rows={3}
             placeholder="Add a note…"
-            className="mt-2 w-full rounded-2xl border border-rule bg-paper px-3 py-2 text-sm outline-none focus:border-accent"
+            className="mt-2 w-full resize-none rounded-[12px] bg-chip px-3 py-2 text-[14px] outline-none"
           />
-        </label>
+        </div>
       </section>
 
-      <div className="grid grid-cols-3 gap-2 print:hidden">
-        <button
-          type="button"
-          onClick={() => void copyText()}
-          className="rounded-2xl bg-paper px-3 py-3 text-xs font-semibold text-ink ring-1 ring-rule"
-        >
-          {copied === "text" ? "Copied" : "Copy text"}
-        </button>
-        <button
-          type="button"
-          onClick={exportPdf}
-          className="rounded-2xl bg-paper px-3 py-3 text-xs font-semibold text-ink ring-1 ring-rule"
-        >
-          Export PDF
-        </button>
-        <button
-          type="button"
-          onClick={() => void shareDoc()}
-          className="rounded-2xl bg-accent px-3 py-3 text-xs font-semibold text-white"
-        >
-          {copied === "link" ? "Link copied" : "Share"}
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={() => router.push("/archive")}
+        className="rounded-[16px] bg-accent px-4 py-[15px] text-[16px] font-semibold text-white print:hidden"
+      >
+        Save
+      </button>
     </main>
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function ActionRound({
+  label,
+  icon,
+  onClick,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  onClick: () => void;
+}) {
   return (
-    <div className="flex items-center justify-between gap-4">
-      <dt className="text-muted">{label}</dt>
-      <dd className="font-medium text-ink">{value}</dd>
+    <button type="button" onClick={onClick} className="flex flex-col items-center gap-2">
+      <span className="flex h-14 w-14 items-center justify-center rounded-full bg-chip text-ink">{icon}</span>
+      <span className="text-[12px] font-medium text-ink">{label}</span>
+    </button>
+  );
+}
+
+function DetailRow({
+  icon,
+  label,
+  value,
+  strong,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  strong?: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-3 border-t border-rule px-4 py-3.5 first:border-0">
+      <span className="text-ink">{icon}</span>
+      <span className="flex-1 text-[14px] text-ink">{label}</span>
+      <span className={`text-[14px] ${strong ? "font-semibold text-ink" : "text-muted"}`}>{value}</span>
     </div>
   );
 }
