@@ -1,25 +1,35 @@
-/** Kept mark from GPT mockups: sage tile + white dog-eared page + dark K */
+/** Exact Kept mark from GPT phones: sage tile + white dog-eared page + dark K */
 export function LogoMark({ size = 64 }: { size?: number }) {
-  const radius = Math.max(14, size * 0.22);
+  const radius = Math.round(size * 0.22);
   return (
     <div
-      className="relative flex items-center justify-center shadow-sm"
+      className="relative flex items-center justify-center"
       style={{
         width: size,
         height: size,
         borderRadius: radius,
-        background: "linear-gradient(180deg, #5d7862 0%, #516a57 55%, #455c4a 100%)",
+        background: "#516a57",
+        boxShadow: "0 1px 2px rgba(18, 20, 18, 0.12)",
       }}
       aria-hidden
     >
-      <svg width={size * 0.62} height={size * 0.72} viewBox="0 0 62 72" fill="none">
+      <svg
+        width={Math.round(size * 0.58)}
+        height={Math.round(size * 0.68)}
+        viewBox="0 0 58 68"
+        fill="none"
+      >
+        {/* page */}
         <path
-          d="M10 4h32l14 14v46c0 2.2-1.8 4-4 4H10c-2.2 0-4-1.8-4-4V8c0-2.2 1.8-4 4-4Z"
-          fill="white"
+          d="M8 2.5h30.5L52 16v46.5c0 1.9-1.6 3.5-3.5 3.5h-37C9.6 66 8 64.4 8 62.5V6A3.5 3.5 0 0 1 11.5 2.5"
+          fill="#ffffff"
         />
-        <path d="M42 4v10c0 2.2 1.8 4 4 4h14L42 4Z" fill="#d7e2d9" />
+        {/* dog-ear */}
+        <path d="M38.5 2.5V13c0 1.9 1.6 3.5 3.5 3.5h10.5L38.5 2.5Z" fill="#d9e4db" />
+        <path d="M38.5 2.5 52 16h-10c-1.9 0-3.5-1.6-3.5-3.5V2.5Z" fill="#c8d6cb" />
+        {/* K */}
         <path
-          d="M22 20h6.2v12.1L41.4 20H48l-13.8 14.2L49.2 52h-6.8L28.2 36.8V52H22V20Z"
+          d="M19 18h7.2v13.2L40.2 18H48L33.4 33.6 49 52h-8.1L26.2 36.2V52H19V18Z"
           fill="#3f5544"
         />
       </svg>
