@@ -1,22 +1,31 @@
 import { classify, extractFacts, titleFromText } from "./classify";
-import { fileToThumbnail, prepareForOcr } from "./image";
+import { fileToDataUrl, fileToThumbnail, prepareForOcr } from "./image";
 import { readImageText } from "./ocr";
-import type { Clip } from "./types";
+import type { DocCategory, KeptDoc } from "./types";
 
 export async function processImage(
   file: Blob,
   onProgress?: (progress: number) => void,
-): Promise<Clip> {
-  const [thumbnail, ocrSource] = await Promise.all([fileToThumbnail(file), prepareForOcr(file)]);
+  preferredCategory?: DocCategory,
+): Promise<KeptDoc> {
+  const [thumbnail, image, ocrSource] = await Promise.all([
+    fileToThumbnail(file),
+    fileToDataUrl(file),
+    prepareForOcr(file),
+  ]);
   const text = await readImageText(ocrSource, onProgress);
-  const cleaned = text || "Could not read text from this screenshot.";
+  const cleaned = text || "Could not read text from this document.";
+  const category = preferredCategory ?? classify(cleaned);
   return {
     id: crypto.randomUUID(),
     createdAt: new Date().toISOString(),
-    kind: classify(cleaned),
+    category,
     title: titleFromText(cleaned),
     text: cleaned,
     thumbnail,
+    image,
     facts: extractFacts(cleaned),
+    tags: [],
+    notes: "",
   };
 }

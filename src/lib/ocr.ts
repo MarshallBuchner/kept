@@ -17,7 +17,7 @@ export async function readImageText(
     });
   }
   const worker = await workerPromise;
-  await worker.setParameters({ tessedit_pageseg_mode: "4" });
+  await worker.setParameters({ tessedit_pageseg_mode: "4" as never });
   const { data } = await worker.recognize(image);
   return data.text?.trim() ?? "";
 }

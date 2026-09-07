@@ -1,8 +1,12 @@
-export const CLIP_KINDS = ["event", "receipt", "recipe", "contact", "other"] as const;
+export const DOC_CATEGORIES = ["receipt", "invoice", "note", "document"] as const;
 
-export type ClipKind = (typeof CLIP_KINDS)[number];
+export type DocCategory = (typeof DOC_CATEGORIES)[number];
 
-export type ClipFacts = {
+export const DOC_TAGS = ["Tax", "Work", "Personal", "Travel"] as const;
+
+export type DocTag = (typeof DOC_TAGS)[number];
+
+export type DocFacts = {
   amounts: string[];
   dates: string[];
   phones: string[];
@@ -13,20 +17,29 @@ export type ClipFacts = {
   items?: string[];
 };
 
-export type Clip = {
+export type KeptDoc = {
   id: string;
   createdAt: string;
-  kind: ClipKind;
+  category: DocCategory;
   title: string;
   text: string;
   thumbnail: string;
-  facts: ClipFacts;
+  image: string;
+  facts: DocFacts;
+  tags: DocTag[];
+  notes: string;
 };
 
-export const KIND_LABEL: Record<ClipKind, string> = {
-  event: "Event",
+/** @deprecated Prefer KeptDoc — kept for share payload compatibility during migration */
+export type Clip = KeptDoc & { kind: DocCategory };
+export type ClipKind = DocCategory;
+export type ClipFacts = DocFacts;
+
+export const CATEGORY_LABEL: Record<DocCategory, string> = {
   receipt: "Receipt",
-  recipe: "Recipe",
-  contact: "Contact",
-  other: "Note",
+  invoice: "Invoice",
+  note: "Note",
+  document: "Document",
 };
+
+export const KIND_LABEL = CATEGORY_LABEL;

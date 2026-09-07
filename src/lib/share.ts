@@ -1,18 +1,20 @@
-import type { Clip, ClipKind } from "./types";
+import type { DocCategory, KeptDoc } from "./types";
 
 type SharePayload = {
-  k: ClipKind;
+  k: DocCategory;
   t: string;
   x: string;
-  f: Clip["facts"];
+  f: KeptDoc["facts"];
 };
 
-export function encodeShare(clip: Pick<Clip, "kind" | "title" | "text" | "facts">): string {
+export function encodeShare(
+  doc: Pick<KeptDoc, "category" | "title" | "text" | "facts">,
+): string {
   const payload: SharePayload = {
-    k: clip.kind,
-    t: clip.title,
-    x: clip.text.slice(0, 4000),
-    f: clip.facts,
+    k: doc.category,
+    t: doc.title,
+    x: doc.text.slice(0, 4000),
+    f: doc.facts,
   };
   return toBase64Url(JSON.stringify(payload));
 }

@@ -1,18 +1,18 @@
-import { KIND_LABEL, type Clip, type ClipFacts, type ClipKind } from "@/lib/types";
+import { CATEGORY_LABEL, type DocCategory, type DocFacts, type KeptDoc } from "@/lib/types";
 
 type ShareCardProps = {
-  kind: ClipKind;
+  kind: DocCategory;
   title: string;
   text: string;
-  facts: ClipFacts;
+  facts: DocFacts;
   thumbnail?: string;
 };
 
 export function factsFromClip(
-  clip: Pick<Clip, "kind" | "title" | "text" | "facts" | "thumbnail">,
+  clip: Pick<KeptDoc, "category" | "title" | "text" | "facts" | "thumbnail">,
 ): ShareCardProps {
   return {
-    kind: clip.kind,
+    kind: clip.category,
     title: clip.title,
     text: clip.text,
     facts: clip.facts,
@@ -23,7 +23,7 @@ export function factsFromClip(
 export function ShareCard({ kind, title, text, facts, thumbnail }: ShareCardProps) {
   const meta = [
     ...(facts.merchant ? [{ label: facts.merchant, kind: "Store" }] : []),
-    ...(facts.phones.map((v) => ({ label: v.replace(/\s+/g, " "), kind: "Phone" })) ?? []),
+    ...facts.phones.map((v) => ({ label: v.replace(/\s+/g, " "), kind: "Phone" })),
     ...facts.dates.map((v) => ({ label: v, kind: "Date" })),
     ...facts.emails.map((v) => ({ label: v, kind: "Email" })),
   ];
@@ -37,23 +37,25 @@ export function ShareCard({ kind, title, text, facts, thumbnail }: ShareCardProp
   });
 
   return (
-    <article className="overflow-hidden rounded-sm border border-rule bg-card">
+    <article className="overflow-hidden rounded-3xl border border-rule bg-card shadow-sm">
       {thumbnail ? (
         <img src={thumbnail} alt="" className="max-h-36 w-full object-cover object-top" />
       ) : null}
       <div className="flex flex-col gap-4 p-5">
-        <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted">
-          {KIND_LABEL[kind]}
+        <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-accent">
+          {CATEGORY_LABEL[kind]}
         </span>
-        <h2 className="font-serif text-2xl leading-snug tracking-tight text-ink">{title}</h2>
+        <h2 className="font-[family-name:var(--font-display)] text-2xl font-semibold leading-snug tracking-tight text-ink">
+          {title}
+        </h2>
         {meta.length > 0 ? (
           <ul className="flex flex-wrap gap-2">
             {meta.map((chip) => (
               <li
                 key={`${chip.kind}-${chip.label}`}
-                className="rounded-full bg-paper px-2.5 py-1 text-xs text-ink ring-1 ring-rule"
+                className="rounded-full bg-accent-soft px-2.5 py-1 text-xs text-accent-strong"
               >
-                <span className="text-muted">{chip.kind} · </span>
+                <span className="text-accent/70">{chip.kind} · </span>
                 {chip.label}
               </li>
             ))}
@@ -62,7 +64,10 @@ export function ShareCard({ kind, title, text, facts, thumbnail }: ShareCardProp
         {lines.length > 0 ? (
           <ul className="flex flex-col gap-2 border-t border-rule pt-3">
             {lines.map((line) => (
-              <li key={`${line.name}-${line.price}`} className="flex items-baseline justify-between gap-4 text-sm">
+              <li
+                key={`${line.name}-${line.price}`}
+                className="flex items-baseline justify-between gap-4 text-sm"
+              >
                 <span className="text-ink">{line.name}</span>
                 {line.price ? <span className="tabular-nums text-muted">{line.price}</span> : null}
               </li>

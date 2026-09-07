@@ -1,12 +1,15 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f4efe6;
-  --foreground: #1c1915;
-  --card: #fbf8f2;
-  --muted: #6f675c;
-  --accent: #b54a32;
-  --rule: #d9d0c3;
+  --background: #f4f7f5;
+  --foreground: #15201b;
+  --card: #ffffff;
+  --muted: #6a756f;
+  --accent: #2f5d50;
+  --accent-soft: #e4efe9;
+  --accent-strong: #244a40;
+  --rule: #d7e0db;
+  --warning: #b45309;
 }
 
 @theme inline {
@@ -17,14 +20,60 @@
   --color-card: var(--card);
   --color-muted: var(--muted);
   --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-strong: var(--accent-strong);
   --color-rule: var(--rule);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-serif: var(--font-newsreader);
+  --font-display: var(--font-sora);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+@keyframes kept-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes kept-pulse-soft {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes kept-check {
+  from {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-fade-up {
+  animation: kept-fade-up 0.45s ease-out both;
+}
+
+.animate-pulse-soft {
+  animation: kept-pulse-soft 1.6s ease-in-out infinite;
+}
+
+.animate-check {
+  animation: kept-check 0.28s ease-out both;
 }
