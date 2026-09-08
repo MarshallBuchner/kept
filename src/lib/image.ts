@@ -30,18 +30,12 @@ export async function prepareForOcr(file: Blob): Promise<Blob> {
 }
 
 export async function fileToThumbnail(file: Blob, maxWidth = 720): Promise<string> {
-  const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, maxWidth / bitmap.width);
-  const width = Math.max(1, Math.round(bitmap.width * scale));
-  const height = Math.max(1, Math.round(bitmap.height * scale));
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Could not read this image.");
-  ctx.drawImage(bitmap, 0, 0, width, height);
-  bitmap.close();
-  return canvas.toDataURL("image/jpeg", 0.72);
+  return compressToDataUrl(file, maxWidth, 0.72);
+}
+
+/** Display-size JPEG for localStorage — never store full camera originals. */
+export async function fileToStoredImage(file: Blob, maxEdge = 1280): Promise<string> {
+  return compressToDataUrl(file, maxEdge, 0.7);
 }
 
 export async function fileToDataUrl(file: Blob): Promise<string> {
@@ -51,6 +45,24 @@ export async function fileToDataUrl(file: Blob): Promise<string> {
     reader.onerror = () => reject(new Error("Could not read this image."));
     reader.readAsDataURL(file);
   });
+}
+
+async function compressToDataUrl(file: Blob, maxEdge: number, quality: number): Promise<string> {
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
+  const width = Math.max(1, Math.round(bitmap.width * scale));
+  const height = Math.max(1, Math.round(bitmap.height * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    bitmap.close();
+    throw new Error("Could not read this image.");
+  }
+  ctx.drawImage(bitmap, 0, 0, width, height);
+  bitmap.close();
+  return canvas.toDataURL("image/jpeg", quality);
 }
 
 export async function rotateBlob(file: Blob, degrees: 90 | 180 | 270): Promise<Blob> {

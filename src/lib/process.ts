@@ -1,5 +1,5 @@
 import { classify, extractFacts, normalizeOcrText, titleFromText } from "./classify";
-import { fileToDataUrl, fileToThumbnail, prepareForOcr } from "./image";
+import { fileToStoredImage, fileToThumbnail, prepareForOcr } from "./image";
 import { readImageText } from "./ocr";
 import type { DocCategory, KeptDoc } from "./types";
 
@@ -10,7 +10,7 @@ export async function processImage(
 ): Promise<KeptDoc> {
   const [thumbnail, image, ocrSource] = await Promise.all([
     fileToThumbnail(file),
-    fileToDataUrl(file),
+    fileToStoredImage(file),
     prepareForOcr(file),
   ]);
   const text = normalizeOcrText(await readImageText(ocrSource, onProgress));
