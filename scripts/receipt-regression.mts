@@ -38,6 +38,21 @@ SUBTOTAL 32.82
 TOTAL 35.36
 VISA TEND 35.36`;
 
+/** Exact Full Text OCR from the live Walmart retest that still missed items. */
+const liveMangledWalmart = `Walmart 3,<
+702-639-1202 Mgr: SHIREEN
+5940 LOSEE RD
+NORTH LAS VEGAS NV 9081
+ST# 04339 OP# 009046 TEH# 45 TR# 08549
+VINYL GLOVES 019339700848 11.72 X
+AJAX DISHLIM 003500049863 2.96 X
+ADVIL DUAL18 030573014718: 3.98 X
+MCC/SCH PARS 00 aa F 2-43 ;
+VINYL GLOVES 019339700505 32785
+8.375 % 2.54
+TAX 1 TOTAL 35.36
+VISA TEND 35 36`;
+
 const a = extractFacts(cleanWalmart);
 assert.equal(a.merchant, "Walmart");
 assert.equal(a.total, "35.36");
@@ -93,6 +108,26 @@ assert.ok(
   `item lines should sum near subtotal 32.82, got ${itemSum} from ${JSON.stringify(d.items)}`,
 );
 
+const e = extractFacts(liveMangledWalmart);
+assert.equal(e.total, "35.36");
+assert.ok(
+  e.items?.some((item) => /Vinyl Gloves × 2.*23\.44/i.test(item)),
+  `live OCR second gloves should reuse 11.72 → ×2, got ${JSON.stringify(e.items)}`,
+);
+assert.ok(
+  e.items?.some((item) => /Parsley.*2\.43/i.test(item)),
+  `live OCR parsley hyphen price 2-43, got ${JSON.stringify(e.items)}`,
+);
+assert.ok(
+  e.items?.some((item) => /Advil/i.test(item)),
+  `live OCR Advil with colon after UPC, got ${JSON.stringify(e.items)}`,
+);
+assert.equal(
+  e.itemsLikelyIncomplete,
+  false,
+  `live mangled sample should recover enough items, got ${JSON.stringify(e.items)}`,
+);
+
 console.log("receipt extraction regressions passed");
 console.log(
   JSON.stringify(
@@ -101,6 +136,7 @@ console.log(
       noisyItems: b.items,
       partialItems: c.items,
       splitItems: d.items,
+      liveMangledItems: e.items,
       partialTotal: c.total,
     },
     null,
