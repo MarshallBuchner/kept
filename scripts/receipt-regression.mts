@@ -26,19 +26,72 @@ Advil : 3.98
 TOTAL 35.36
 VISA TEND 35.36`;
 
+/** OCR splits price onto the next line + food tax flag glued to amount. */
+const splitAndFlagged = `Walmart
+VINYL GLOVES 019339700848
+11.72 X
+AJAX DISHLIM 003500049863 2.96 X
+ADVIL : 030573014718 3.98 X
+MCC/SCH PARS 005210000738 F2.44 O
+VINYL GLOVES 019339700845 1.72 X
+SUBTOTAL 32.82
+TOTAL 35.36
+VISA TEND 35.36`;
+
 const a = extractFacts(cleanWalmart);
 assert.equal(a.merchant, "Walmart");
 assert.equal(a.total, "35.36");
 assert.equal(a.totalIsEstimate, false);
+assert.equal(a.itemsLikelyIncomplete, false);
 assert.ok((a.items?.length ?? 0) >= 4, `expected >=4 items, got ${a.items?.length}`);
+assert.ok(
+  a.items?.some((item) => /Vinyl Gloves.*23\.44|Vinyl Gloves × 2/i.test(item)),
+  `expected gloves ×2 totaling 23.44, got ${JSON.stringify(a.items)}`,
+);
+assert.ok(
+  a.items?.some((item) => /Parsley.*2\.44/i.test(item)),
+  `expected parsley 2.44, got ${JSON.stringify(a.items)}`,
+);
+assert.ok(
+  a.items?.some((item) => /Advil/i.test(item) && !/Advil\s*:/i.test(item)),
+  `expected cleaned Advil name, got ${JSON.stringify(a.items)}`,
+);
 
 const b = extractFacts(noisyWalmart);
 assert.equal(b.total, "35.36");
 assert.equal(b.merchant, "Walmart");
+assert.equal(b.itemsLikelyIncomplete, true, "noisy sample should flag incomplete items");
 
 const c = extractFacts(partialItemsButTotal);
 assert.equal(c.total, "35.36", "must prefer TOTAL over item sum");
 assert.equal(c.totalIsEstimate, false);
+assert.equal(c.itemsLikelyIncomplete, true);
+assert.ok(
+  c.items?.some((item) => /^Advil ·/i.test(item) || /^Advil$/i.test(item.split("·")[0].trim())),
+  `trailing colon should be stripped from Advil, got ${JSON.stringify(c.items)}`,
+);
+
+const d = extractFacts(splitAndFlagged);
+assert.equal(d.total, "35.36");
+assert.ok(
+  d.items?.some((item) => /Vinyl Gloves × 2.*23\.44/i.test(item)),
+  `split/truncated gloves should become ×2 @ 23.44, got ${JSON.stringify(d.items)}`,
+);
+assert.ok(
+  d.items?.some((item) => /Parsley.*2\.44/i.test(item)),
+  `flag-glued parsley price should parse, got ${JSON.stringify(d.items)}`,
+);
+assert.ok(
+  d.items?.some((item) => /Advil/i.test(item) && !/:/i.test(item)),
+  `Advil colon cleaned, got ${JSON.stringify(d.items)}`,
+);
+const itemSum = (d.items ?? [])
+  .map((item) => Number(item.slice(item.lastIndexOf("$") + 1)))
+  .reduce((acc, n) => acc + n, 0);
+assert.ok(
+  Math.abs(itemSum - 32.82) < 0.021,
+  `item lines should sum near subtotal 32.82, got ${itemSum} from ${JSON.stringify(d.items)}`,
+);
 
 console.log("receipt extraction regressions passed");
 console.log(
@@ -46,6 +99,8 @@ console.log(
     {
       cleanItems: a.items,
       noisyItems: b.items,
+      partialItems: c.items,
+      splitItems: d.items,
       partialTotal: c.total,
     },
     null,

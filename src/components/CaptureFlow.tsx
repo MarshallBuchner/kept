@@ -462,6 +462,11 @@ export function CaptureFlow({
                       </li>
                     ) : null}
                   </ul>
+                  {doc.facts.itemsLikelyIncomplete ? (
+                    <p className="mt-3 text-[12px] leading-5 text-muted">
+                      Total looks right, but some line items may be missing.
+                    </p>
+                  ) : null}
                 </div>
               ) : (
                 <div className="rounded-[18px] bg-card px-4 py-4 shadow-sm ring-1 ring-rule">

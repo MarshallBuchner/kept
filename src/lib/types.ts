@@ -14,6 +14,8 @@ export type DocFacts = {
   merchant?: string;
   total?: string;
   totalIsEstimate?: boolean;
+  /** True when parsed line items sum well below a printed/tender total. */
+  itemsLikelyIncomplete?: boolean;
   items?: string[];
 };
 
