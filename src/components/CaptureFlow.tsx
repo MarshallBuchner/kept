@@ -130,7 +130,13 @@ export function CaptureFlow({
       setProcessIndex(PROCESS_STEPS.length - 1);
       window.setTimeout(() => setStep("extracted"), 450);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not process that image.");
+      const message =
+        err instanceof Error && /quota|out of space/i.test(err.message)
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "Could not process that image.";
+      setError(message);
       setStep("review");
     }
   }
