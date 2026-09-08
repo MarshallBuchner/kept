@@ -53,6 +53,23 @@ VINYL GLOVES 019339700505 32785
 TAX 1 TOTAL 35.36
 VISA TEND 35 36`;
 
+/** Live miss: slogan + clock time 11:36:18 leaked as item/total $36.18. */
+const timeAndSloganNoise = `Walmart
+ST# 04339 OP# 009046 TE# 46 TR# 08545
+VINYL GLOVES 019339700848 11.72 X
+AJAX DISHLIM 003500049863 2.96 X
+ADVIL DUAL18 030573014718 3.98 X
+MCC/SCH PARS 005210000738 F 2.44 O
+VINYL GLOVES 019339700845 11.72 X
+SUBTOTAL 32.82
+TAX 1 8.375% 2.54
+TOTAL 35.36
+VISA TEND 35.36
+08/12/21 11:36:18
+Low Prices You Can Trust. Every Day.
+Low Prices 21 11 36.18
+***CUSTOMER COPY***`;
+
 const a = extractFacts(cleanWalmart);
 assert.equal(a.merchant, "Walmart");
 assert.equal(a.total, "35.36");
@@ -128,6 +145,18 @@ assert.equal(
   `live mangled sample should recover enough items, got ${JSON.stringify(e.items)}`,
 );
 
+const f = extractFacts(timeAndSloganNoise);
+assert.equal(f.total, "35.36", `must not use clock time 36.18 as total, got ${f.total}`);
+assert.ok(
+  !(f.items ?? []).some((item) => /low\s*prices|36\.18/i.test(item)),
+  `slogan/time must not become line items, got ${JSON.stringify(f.items)}`,
+);
+assert.ok(
+  (f.items ?? []).some((item) => /Vinyl Gloves × 2/i.test(item)),
+  `expected full item list, got ${JSON.stringify(f.items)}`,
+);
+assert.equal(f.itemsLikelyIncomplete, false);
+
 console.log("receipt extraction regressions passed");
 console.log(
   JSON.stringify(
@@ -137,6 +166,8 @@ console.log(
       partialItems: c.items,
       splitItems: d.items,
       liveMangledItems: e.items,
+      timeSloganItems: f.items,
+      timeSloganTotal: f.total,
       partialTotal: c.total,
     },
     null,

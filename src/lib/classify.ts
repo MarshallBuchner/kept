@@ -45,16 +45,18 @@ export function normalizeOcrText(text: string): string {
 export function extractFacts(text: string): DocFacts {
   const cleaned = normalizeOcrText(text);
   const merchant = findMerchant(cleaned);
-  const items = parseReceiptItems(cleaned);
+  const timeAmounts = timeFragmentAmounts(cleaned);
+  const items = parseReceiptItems(cleaned).filter((item) => !timeAmounts.has(item.price));
   const priced = items.map((item) => item.price);
-  const printedTotal = printedTotalFromText(cleaned);
-  const tenderTotal = tenderTotalFromText(cleaned);
+  const printedTotal = printedTotalFromText(cleaned, timeAmounts);
+  const tenderTotal = tenderTotalFromText(cleaned, timeAmounts);
   const summed = sumPrices(priced);
+  const subTax = subtotalPlusTax(cleaned);
 
-  // Prefer printed TOTAL / card tender every time. Never let a partial item
-  // sum flip the total between runs when a receipt total is present.
-  const total = printedTotal ?? tenderTotal ?? (items.length >= 3 ? summed : undefined);
-  const anchor = Number(printedTotal ?? tenderTotal ?? 0);
+  // Prefer printed TOTAL / card tender. When they disagree, pick the value that
+  // agrees with tender, subtotal+tax, or appears twice — never a clock time.
+  const total = chooseReceiptTotal({ printedTotal, tenderTotal, summed, subTax, itemCount: items.length });
+  const anchor = Number(total ?? 0);
   const itemSum = Number(summed ?? 0);
   const itemsLikelyIncomplete =
     Boolean(total) &&
@@ -152,7 +154,7 @@ export function scoreReceiptText(text: string): number {
 }
 
 const SKIP_LINE =
-  /walmart|save money|live better|total|subtotal|tax|approval|terminal|payment|signature|ref #|cashier|change|manager|st#|op#|te#|tr#|phone|coupon|visa|amex|mastercard|debit|philadelphia|bluebell|tend\b|\baid\b|trans id|validation|cartwheel|saved \$|items sold|customer copy|survey|feedback|expect more|pay less|tc#|aac\b|auth#|expires|purchase|regular sale|your redcard/i;
+  /walmart|save money|live better|low prices|you can trust|every day|customer copy|total|subtotal|tax|approval|terminal|payment|signature|ref #|cashier|change|manager|st#|op#|te#|tr#|phone|coupon|visa|amex|mastercard|debit|philadelphia|bluebell|tend\b|\baid\b|trans id|validation|cartwheel|saved \$|items sold|survey|feedback|expect more|pay less|tc#|aac\b|auth#|expires|purchase|regular sale|your redcard/i;
 
 const SECTION_HEADER =
   /^(cleaning supplies|grocery|health|beauty|cosmetics|home|produce|electronics|clothing|apparel)\b/i;
@@ -430,6 +432,9 @@ function isPlausibleItemName(name: string): boolean {
   if (letters < 5) return false;
   if (digits > letters) return false;
   if (/[%#]/.test(name)) return false;
+  if (/low\s*prices|you\s*can\s*trust|every\s*day|customer\s*copy|save\s*money|live\s*better/i.test(name)) {
+    return false;
+  }
   const tokens = name.split(/\s+/);
   const junk = tokens.filter((token) => /[A-Za-z]/.test(token) && /\d/.test(token)).length;
   if (junk >= 2) return false;
@@ -452,7 +457,27 @@ function prettyPhone(value: string): string {
   return value.replace(/\s+/g, " ").trim();
 }
 
-function moneyInLine(line: string): string | undefined {
+/** Clock times like 11:36:18 often OCR into fake money (36.18). */
+function timeFragmentAmounts(text: string): Set<string> {
+  const banned = new Set<string>();
+  for (const match of text.matchAll(/\b(\d{1,2})[:.](\d{2})[:.](\d{2})\b/g)) {
+    banned.add(`${Number(match[2])}.${match[3]}`);
+    banned.add(`${Number(match[1])}.${match[2]}`);
+  }
+  // Spaced OCR: "11 36 18" or "11 36.18"
+  for (const match of text.matchAll(/\b(\d{1,2})\s+(\d{2})[.\s](\d{2})\b/g)) {
+    const hour = Number(match[1]);
+    if (hour <= 23) {
+      banned.add(`${Number(match[2])}.${match[3]}`);
+    }
+  }
+  return banned;
+}
+
+function moneyInLine(line: string, banned?: Set<string>): string | undefined {
+  if (/\b\d{1,2}:\d{2}:\d{2}\b/.test(line) && !/\$\s*\d/.test(line) && !/\btotal\b|\btend\b/i.test(line)) {
+    return undefined;
+  }
   const match =
     line.match(/\$\s*(\d{1,4}\.\d{2})\b/) ??
     line.match(/\b(\d{1,4}\.\d{2})\b(?!\s*%)/) ??
@@ -461,10 +486,52 @@ function moneyInLine(line: string): string | undefined {
   const value = typeof match === "string" ? match : match[1];
   const n = Number(value);
   if (!Number.isFinite(n) || n <= 0 || n > 20000) return undefined;
-  return Number(value).toFixed(2);
+  const fixed = Number(value).toFixed(2);
+  if (banned?.has(fixed)) return undefined;
+  return fixed;
 }
 
-function printedTotalFromText(text: string): string | undefined {
+function subtotalPlusTax(text: string): string | undefined {
+  let subtotal: string | undefined;
+  let tax: string | undefined;
+  for (const raw of text.split(/\n/)) {
+    const line = raw.trim();
+    if (/sub\s*total/i.test(line)) subtotal = moneyInLine(line) ?? subtotal;
+    if (/\btax\b/i.test(line) && !/pre-?tax|taxable/i.test(line)) tax = moneyInLine(line) ?? tax;
+  }
+  const sub = Number(subtotal);
+  const taxAmount = Number(tax);
+  if (Number.isFinite(sub) && sub > 0 && Number.isFinite(taxAmount) && taxAmount >= 0) {
+    return (sub + taxAmount).toFixed(2);
+  }
+  return undefined;
+}
+
+function chooseReceiptTotal(opts: {
+  printedTotal?: string;
+  tenderTotal?: string;
+  summed?: string;
+  subTax?: string;
+  itemCount: number;
+}): string | undefined {
+  const { printedTotal, tenderTotal, summed, subTax, itemCount } = opts;
+  if (printedTotal && tenderTotal && printedTotal === tenderTotal) return printedTotal;
+  if (tenderTotal && subTax && tenderTotal === subTax) return tenderTotal;
+  if (printedTotal && subTax && printedTotal === subTax) return printedTotal;
+  if (tenderTotal && printedTotal && tenderTotal !== printedTotal) {
+    // Disagreement: card tender beats a lone TOTAL that looks like a clock fragment
+    // or doesn't agree with subtotal+tax.
+    if (subTax) {
+      const tDist = Math.abs(Number(tenderTotal) - Number(subTax));
+      const pDist = Math.abs(Number(printedTotal) - Number(subTax));
+      return tDist <= pDist ? tenderTotal : printedTotal;
+    }
+    return tenderTotal;
+  }
+  return printedTotal ?? tenderTotal ?? (itemCount >= 3 ? summed : undefined);
+}
+
+function printedTotalFromText(text: string, banned?: Set<string>): string | undefined {
   let subtotal: string | undefined;
   let tax: string | undefined;
   let total: string | undefined;
@@ -474,23 +541,26 @@ function printedTotalFromText(text: string): string | undefined {
     if (!line) continue;
 
     if (/sub\s*total/i.test(line)) {
-      subtotal = moneyInLine(line) ?? subtotal;
+      subtotal = moneyInLine(line, banned) ?? subtotal;
       continue;
     }
     if (/\btax\b/i.test(line) && !/pre-?tax|taxable/i.test(line)) {
-      tax = moneyInLine(line) ?? tax;
+      tax = moneyInLine(line, banned) ?? tax;
       continue;
     }
     // Avoid matching "items sold" style noise; require TOTAL near an amount.
     if (/\btotal\b/i.test(line) && !/sub\s*total/i.test(line)) {
-      total = moneyInLine(line) ?? total;
+      total = moneyInLine(line, banned) ?? total;
     }
   }
 
   // Global fallback for OCR that smashed TOTAL onto a weird line.
   if (!total) {
     const smashed = text.match(/\bTOTAL\b[^\d]{0,12}(\d{1,4}\.\d{2})\b/i);
-    if (smashed) total = Number(smashed[1]).toFixed(2);
+    if (smashed) {
+      const candidate = Number(smashed[1]).toFixed(2);
+      if (!banned?.has(candidate)) total = candidate;
+    }
   }
 
   const sub = Number(subtotal);
@@ -510,19 +580,21 @@ function printedTotalFromText(text: string): string | undefined {
   return undefined;
 }
 
-function tenderTotalFromText(text: string): string | undefined {
+function tenderTotalFromText(text: string, banned?: Set<string>): string | undefined {
   for (const raw of text.split(/\n/)) {
     const line = raw.trim();
     if (/\b(?:visa|amex|mc|mastercard|debit|us\s*debit|discover)\b.*\b(?:tend|total)?\b/i.test(line) ||
       /\btend\b/i.test(line)) {
-      const amount = moneyInLine(line);
+      const amount = moneyInLine(line, banned);
       if (amount && Number(amount) >= 1) return amount;
     }
   }
   const smashed = text.match(
     /\b(?:VISA|AMEX|DEBIT|MASTERCARD)\s*(?:TEND)?[^\d]{0,10}(\d{1,4}\.\d{2})\b/i,
   );
-  return smashed ? Number(smashed[1]).toFixed(2) : undefined;
+  if (!smashed) return undefined;
+  const candidate = Number(smashed[1]).toFixed(2);
+  return banned?.has(candidate) ? undefined : candidate;
 }
 
 function sumPrices(priced: string[]): string | undefined {
