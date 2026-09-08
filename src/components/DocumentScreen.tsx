@@ -97,7 +97,7 @@ export function DocumentScreen({ id }: { id: string }) {
         <img
           src={doc.image || doc.thumbnail}
           alt=""
-          className="h-24 w-24 rounded-[16px] object-cover ring-1 ring-rule"
+          className="h-28 w-28 rounded-[16px] bg-chip object-contain ring-1 ring-rule"
         />
         <h1 className="mt-4 text-[22px] font-bold tracking-tight">{doc.title}</h1>
         <p className="mt-1 text-[28px] font-bold tabular-nums">

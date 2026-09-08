@@ -4,8 +4,9 @@ export type ClipFacts = DocFacts;
 export type ClipKind = DocCategory;
 
 const MERCHANTS: [RegExp, string][] = [
-  [/walmart/i, "Walmart"],
-  [/target\b/i, "Target"],
+  [/walmart|save money\.?\s*live better/i, "Walmart"],
+  [/target\b|expect more\.?\s*pay less/i, "Target"],
+  [/marshalls?/i, "Marshalls"],
   [/costco/i, "Costco"],
   [/trader\s*joe/i, "Trader Joe's"],
   [/whole\s*foods/i, "Whole Foods"],
@@ -22,45 +23,76 @@ export function findMerchant(text: string): string | undefined {
   return undefined;
 }
 
+/** Normalize noisy OCR before parsing so totals stay stable across runs. */
+export function normalizeOcrText(text: string): string {
+  return text
+    .replace(/\u0000/g, "")
+    .replace(/[|]/g, "I")
+    .replace(/\bT[O0]TA[LI1]\b/gi, "TOTAL")
+    .replace(/\bSUB\s*T[O0]TA[LI1]\b/gi, "SUBTOTAL")
+    .replace(/\bVISA\s*TE[NM]D\b/gi, "VISA TEND")
+    .replace(/\b(?:US\s*)?DEBIT\s*TE[NM]D\b/gi, "DEBIT TEND")
+    .replace(/\bAMEX\s*TE[NM]D\b/gi, "AMEX TEND")
+    .replace(/\bCHANGE\s+DU[EF]\b/gi, "CHANGE DUE")
+    .replace(/\bW[AO][LI1]MART\b/gi, "Walmart")
+    .replace(/\bTARGE[TI]\b/gi, "Target")
+    .replace(/\bMARSHA[LI1]{1,2}S?\b/gi, "Marshalls")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 export function extractFacts(text: string): DocFacts {
-  const merchant = findMerchant(text);
-  const items = parseReceiptItems(text);
+  const cleaned = normalizeOcrText(text);
+  const merchant = findMerchant(cleaned);
+  const items = parseReceiptItems(cleaned);
   const priced = items.map((item) => item.price);
-  const printedTotal = printedTotalFromText(text);
+  const printedTotal = printedTotalFromText(cleaned);
+  const tenderTotal = tenderTotalFromText(cleaned);
   const summed = sumPrices(priced);
-  const total = printedTotal ?? summed;
+
+  // Prefer printed TOTAL / card tender every time. Never let a partial item
+  // sum flip the total between runs when a receipt total is present.
+  const total = printedTotal ?? tenderTotal ?? (items.length >= 3 ? summed : undefined);
+
   return {
     amounts: unique([...(total ? [total] : []), ...priced]),
     dates: unique(
-      text.match(
+      cleaned.match(
         /\b(?:(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{1,2}(?:,\s*\d{4})?|\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{4}-\d{2}-\d{2})\b/gi,
       ) ?? [],
     ),
     phones: unique(
-      (text.match(/\(?\s*\d{3}\s*\)?\s*[-.\s]+\s*\d{3}\s*[-.\s]+\s*\d{4}\b/g) ?? []).map(prettyPhone),
+      (cleaned.match(/\(?\s*\d{3}\s*\)?\s*[-.\s]+\s*\d{3}\s*[-.\s]+\s*\d{4}\b/g) ?? []).map(prettyPhone),
     ),
-    emails: unique(text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) ?? []),
+    emails: unique(cleaned.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) ?? []),
     merchant,
     total,
-    totalIsEstimate: Boolean(total) && !printedTotal,
+    totalIsEstimate: Boolean(total) && !printedTotal && !tenderTotal,
     items: items.map((item) => `${item.name} · $${item.price}`),
   };
 }
 
 export function titleFromText(text: string): string {
-  const merchant = findMerchant(text);
+  const cleaned = normalizeOcrText(text);
+  const merchant = findMerchant(cleaned);
   if (merchant) return merchant;
   const line =
-    text
+    cleaned
       .split(/\n/)
       .map((s) => s.trim())
-      .find((s) => s.length > 2 && !/^[><|\\/\s]+$/.test(s) && !/save money|live better/i.test(s)) ??
-    "Untitled clip";
+      .find(
+        (s) =>
+          s.length > 2 &&
+          !/^[><|\\/\s]+$/.test(s) &&
+          !/save money|live better|survey|feedback|expect more/i.test(s),
+      ) ?? "Untitled clip";
   return line.slice(0, 80);
 }
 
 export function classify(text: string): DocCategory {
-  const t = text.toLowerCase();
+  const cleaned = normalizeOcrText(text);
+  const t = cleaned.toLowerCase();
   const scores: Record<DocCategory, number> = {
     receipt: 0,
     invoice: 0,
@@ -68,7 +100,7 @@ export function classify(text: string): DocCategory {
     document: 0,
   };
 
-  if (findMerchant(text)) scores.receipt += 4;
+  if (findMerchant(cleaned)) scores.receipt += 4;
   if (
     /\$\s*\d|total|subtotal|tax|visa|mastercard|change due|auth code|cashier|terminal|approval|ref #/.test(
       t,
@@ -76,7 +108,7 @@ export function classify(text: string): DocCategory {
   ) {
     scores.receipt += 3;
   }
-  if (parseReceiptItems(text).length >= 2) scores.receipt += 2;
+  if (parseReceiptItems(cleaned).length >= 2) scores.receipt += 2;
   if (/invoice|bill to|amount due|net\s*\d+|purchase order|po\s*#|remit/.test(t)) {
     scores.invoice += 4;
   }
@@ -97,8 +129,21 @@ export function classify(text: string): DocCategory {
   return score >= 2 ? kind : "document";
 }
 
+export function scoreReceiptText(text: string): number {
+  const cleaned = normalizeOcrText(text);
+  let score = 0;
+  if (findMerchant(cleaned)) score += 6;
+  if (printedTotalFromText(cleaned)) score += 10;
+  if (tenderTotalFromText(cleaned)) score += 6;
+  if (/subtotal/i.test(cleaned)) score += 2;
+  if (/\btax\b/i.test(cleaned)) score += 1;
+  score += Math.min(parseReceiptItems(cleaned).length, 12);
+  score += Math.min(cleaned.length / 80, 8);
+  return score;
+}
+
 const SKIP_LINE =
-  /walmart|save money|live better|total|subtotal|tax|approval|terminal|payment|signature|ref #|cashier|change|manager|st#|op#|te#|tr#|phone|coupon|visa|philadelphia|bluebell|tend\b|\baid\b|trans id|validation/i;
+  /walmart|save money|live better|total|subtotal|tax|approval|terminal|payment|signature|ref #|cashier|change|manager|st#|op#|te#|tr#|phone|coupon|visa|amex|mastercard|debit|philadelphia|bluebell|tend\b|\baid\b|trans id|validation|cartwheel|saved \$|items sold|customer copy|survey|feedback|expect more|pay less|tc#|aac\b|auth#|expires|purchase|regular sale/i;
 
 const NAME_FIXES: [RegExp, string][] = [
   [/\bdrbng\b/i, "Dressing"],
@@ -113,6 +158,8 @@ const NAME_FIXES: [RegExp, string][] = [
   [/\bstko\w*plabl/i, "Strawberry"],
   [/\bstko\b/i, ""],
   [/\bsteko\b/i, ""],
+  [/\bgl\s*oves\b/i, "Gloves"],
+  [/\bdishlim\b/i, "Dish Liquid"],
 ];
 
 function parseReceiptItems(text: string): { name: string; price: string }[] {
@@ -213,35 +260,77 @@ function prettyPhone(value: string): string {
   return value.replace(/\s+/g, " ").trim();
 }
 
+function moneyInLine(line: string): string | undefined {
+  const match =
+    line.match(/\$\s*(\d{1,4}\.\d{2})\b/) ??
+    line.match(/\b(\d{1,4}\.\d{2})\b(?!\s*%)/) ??
+    priceFromLine(line);
+  if (!match) return undefined;
+  const value = typeof match === "string" ? match : match[1];
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0 || n > 20000) return undefined;
+  return Number(value).toFixed(2);
+}
+
 function printedTotalFromText(text: string): string | undefined {
   let subtotal: string | undefined;
   let tax: string | undefined;
   let total: string | undefined;
+
   for (const raw of text.split(/\n/)) {
     const line = raw.trim();
-    if (/subtotal/i.test(line)) {
-      subtotal = priceFromLine(line) ?? subtotal;
+    if (!line) continue;
+
+    if (/sub\s*total/i.test(line)) {
+      subtotal = moneyInLine(line) ?? subtotal;
       continue;
     }
-    if (/^\s*tax\b/i.test(line) || (/\btax\b/i.test(line) && /\$/.test(line))) {
-      tax = line.match(/\$\s*(\d{1,3}\.\d{2})/)?.[1] ?? priceFromLine(line) ?? tax;
+    if (/\btax\b/i.test(line) && !/pre-?tax|taxable/i.test(line)) {
+      tax = moneyInLine(line) ?? tax;
       continue;
     }
-    if (/\btotal\b/i.test(line)) {
-      total = priceFromLine(line) ?? total;
+    // Avoid matching "items sold" style noise; require TOTAL near an amount.
+    if (/\btotal\b/i.test(line) && !/sub\s*total/i.test(line)) {
+      total = moneyInLine(line) ?? total;
     }
   }
+
+  // Global fallback for OCR that smashed TOTAL onto a weird line.
+  if (!total) {
+    const smashed = text.match(/\bTOTAL\b[^\d]{0,12}(\d{1,4}\.\d{2})\b/i);
+    if (smashed) total = Number(smashed[1]).toFixed(2);
+  }
+
   const sub = Number(subtotal);
   const grand = Number(total);
-  if (Number.isFinite(grand) && grand > 5 && !(Number.isFinite(sub) && grand < sub * 0.5)) {
-    return total;
+  if (Number.isFinite(grand) && grand > 0) {
+    if (Number.isFinite(sub) && sub > 0 && grand < sub * 0.45) {
+      // OCR likely grabbed a tiny false TOTAL; prefer subtotal+tax.
+    } else {
+      return total;
+    }
   }
   if (Number.isFinite(sub) && sub > 0) {
     const taxAmount = Number(tax);
-    if (Number.isFinite(taxAmount) && taxAmount > 0) return (sub + taxAmount).toFixed(2);
+    if (Number.isFinite(taxAmount) && taxAmount >= 0) return (sub + taxAmount).toFixed(2);
     return subtotal;
   }
   return undefined;
+}
+
+function tenderTotalFromText(text: string): string | undefined {
+  for (const raw of text.split(/\n/)) {
+    const line = raw.trim();
+    if (/\b(?:visa|amex|mc|mastercard|debit|us\s*debit|discover)\b.*\b(?:tend|total)?\b/i.test(line) ||
+      /\btend\b/i.test(line)) {
+      const amount = moneyInLine(line);
+      if (amount && Number(amount) >= 1) return amount;
+    }
+  }
+  const smashed = text.match(
+    /\b(?:VISA|AMEX|DEBIT|MASTERCARD)\s*(?:TEND)?[^\d]{0,10}(\d{1,4}\.\d{2})\b/i,
+  );
+  return smashed ? Number(smashed[1]).toFixed(2) : undefined;
 }
 
 function sumPrices(priced: string[]): string | undefined {
@@ -259,7 +348,7 @@ function unique(items: string[]): string[] {
     if (!key || seen.has(key.toLowerCase())) continue;
     seen.add(key.toLowerCase());
     out.push(key);
-    if (out.length >= 8) break;
+    if (out.length >= 24) break;
   }
   return out;
 }
