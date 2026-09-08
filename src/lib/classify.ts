@@ -54,6 +54,14 @@ export function extractFacts(text: string): DocFacts {
   // Prefer printed TOTAL / card tender every time. Never let a partial item
   // sum flip the total between runs when a receipt total is present.
   const total = printedTotal ?? tenderTotal ?? (items.length >= 3 ? summed : undefined);
+  const anchor = Number(printedTotal ?? tenderTotal ?? 0);
+  const itemSum = Number(summed ?? 0);
+  const itemsLikelyIncomplete =
+    Boolean(total) &&
+    itemSum > 0 &&
+    anchor > 0 &&
+    itemSum < anchor * 0.82 &&
+    Math.abs(anchor - itemSum) >= 1;
 
   return {
     amounts: unique([...(total ? [total] : []), ...priced]),
@@ -69,6 +77,7 @@ export function extractFacts(text: string): DocFacts {
     merchant,
     total,
     totalIsEstimate: Boolean(total) && !printedTotal && !tenderTotal,
+    itemsLikelyIncomplete,
     items: items.map((item) => `${item.name} · $${item.price}`),
   };
 }
@@ -164,18 +173,22 @@ const NAME_FIXES: [RegExp, string][] = [
   [/\bgl\s*oves\b/i, "Gloves"],
   [/\bgi\s*oves\b/i, "Gloves"],
   [/\bdishlim\b/i, "Dish Liquid"],
-  [/\bdual\s*\d*\b/i, "Dual"],
+  [/\bdual\s*\d*/i, "Dual"],
   [/\bmcc\/?\s*sch\s*pars\b/i, "McCormick Parsley"],
+  [/\bmcc\s*sch\s*pars\b/i, "McCormick Parsley"],
+  [/\bmccormick\s*pars(?:ley)?\b/i, "McCormick Parsley"],
+  [/\bpars(?:ley)?\b/i, "Parsley"],
   [/\blean\s*cuisin\b/i, "Lean Cuisine"],
   [/\bbird\s*subb?\b/i, "Birdseye"],
+  [/\badvil\b/i, "Advil"],
 ];
 
 function parseReceiptItems(text: string): { name: string; price: string }[] {
   const items: { name: string; price: string; qty: number }[] = [];
   const index = new Map<string, number>();
+  const lines = stitchSplitItemLines(text.split(/\n/).map((l) => l.trim()).filter(Boolean));
 
-  for (const raw of text.split(/\n/)) {
-    const line = raw.trim();
+  for (const line of lines) {
     if (line.length < 4 || SKIP_LINE.test(line) || SECTION_HEADER.test(line)) continue;
     if (/%/.test(line) && !/\d\.\d{2}/.test(line)) continue;
 
@@ -194,10 +207,11 @@ function parseReceiptItems(text: string): { name: string; price: string }[] {
         prior.qty += 1;
         continue;
       }
-      // Prefer the longer/more precise price when OCR drops a digit (1.72 vs 11.72).
-      if (Math.abs(Number(prior.price) * 10 - Number(price)) < 0.001 ||
-        Math.abs(Number(price) * 10 - Number(prior.price)) < 0.001) {
-        prior.price = Number(prior.price) > Number(price) ? prior.price : price;
+      // Prefer the longer/more precise price when OCR drops a leading digit
+      // (1.72 vs 11.72), and still count both lines — common for duplicate SKUs.
+      if (isTruncatedPricePair(prior.price, price)) {
+        prior.price = prior.price.length >= price.length ? prior.price : price;
+        prior.qty += 1;
         continue;
       }
     }
@@ -218,14 +232,50 @@ function parseReceiptItems(text: string): { name: string; price: string }[] {
   }));
 }
 
+/** OCR often drops a leading digit on a duplicate SKU price (11.72 → 1.72). */
+function isTruncatedPricePair(a: string, b: string): boolean {
+  if (a === b) return false;
+  const [longer, shorter] = a.length >= b.length ? [a, b] : [b, a];
+  return longer.length === shorter.length + 1 && longer.slice(1) === shorter;
+}
+
+/** Merge "NAME UPC" + next-line-only price into one item line. */
+function stitchSplitItemLines(lines: string[]): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const next = lines[i + 1];
+    const hasUpc = /\b\d{8,14}\b/.test(line);
+    const hasPrice = /\d{1,3}\.\d{2}/.test(line) || /\b\d{1,3}[.,\s]\d{2}\s*[A-Za-z]?\s*$/.test(line);
+    const nextIsPriceOnly =
+      next &&
+      /^(?:[A-Za-z]\s*)?\$?\s*\d{1,3}[.,]\d{2}\s*[A-Za-z]?\s*$/.test(next) &&
+      !/\b\d{8,14}\b/.test(next);
+    if (hasUpc && !hasPrice && nextIsPriceOnly) {
+      out.push(`${line} ${next}`);
+      i += 1;
+      continue;
+    }
+    out.push(line);
+  }
+  return out;
+}
+
 /** Walmart: NAME UPC PRICE X ; Target-ish: ID NAME FC $PRICE */
 function parseStructuredItem(line: string): { name: string; price: string } | undefined {
+  // Optional tax flag letter (F/T/N/X/O) between UPC and price — common on Walmart food lines.
   const walmart =
     line.match(
-      /^(.+?)\s+(\d{8,14})[!lI]?\s+(\d{1,3}\.\d{2})\s*[A-Za-z]?\s*$/,
+      /^(.+?)\s+(\d{8,14})[!lI]?\s*(?:[FTNXO]\s*)?(\d{1,3}\.\d{2})\s*[A-Za-z]?\s*$/i,
+    ) ??
+    // OCR glues flag to price: "... 005210000738 F2.44 O" or "...738F 2.44 O"
+    line.match(
+      /^(.+?)\s+(\d{8,14})[!lI]?\s*[FTNXO]?(\d{1,3}\.\d{2})\s*[A-Za-z]?\s*$/i,
     ) ??
     // OCR sometimes drops the decimal: "... 019339700848 1172 X" or "... 11 72 X"
-    line.match(/^(.+?)\s+(\d{8,14})[!lI]?\s+(\d{1,3})[.,\s](\d{2})\s*[A-Za-z]?\s*$/);
+    line.match(
+      /^(.+?)\s+(\d{8,14})[!lI]?\s*(?:[FTNXO]\s*)?(\d{1,3})[.,\s](\d{2})\s*[A-Za-z]?\s*$/i,
+    );
 
   if (walmart) {
     const name = cleanItemName(walmart[1]);
@@ -268,7 +318,12 @@ function cleanItemName(raw: string): string | undefined {
   for (const [pattern, replacement] of NAME_FIXES) {
     name = name.replace(pattern, replacement);
   }
-  name = name.replace(/\s+/g, " ").replace(/\s+[A-Za-z]$/, "").trim();
+  name = name
+    .replace(/\s+/g, " ")
+    .replace(/\s*[.:;,]+$/g, "")
+    .replace(/^[.:;,\s]+/g, "")
+    .replace(/\s+[A-Za-z]$/, "")
+    .trim();
   if (!isPlausibleItemName(name)) return undefined;
   return name.slice(0, 36);
 }

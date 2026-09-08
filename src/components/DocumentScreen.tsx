@@ -150,6 +150,30 @@ export function DocumentScreen({ id }: { id: string }) {
           value={doc.facts.total ? `$${doc.facts.total}` : "—"}
           strong
         />
+        {(doc.facts.items ?? []).length > 0 ? (
+          <div className="border-t border-rule px-4 py-3">
+            <p className="text-[12px] text-muted">Items</p>
+            <ul className="mt-2 space-y-2">
+              {(doc.facts.items ?? []).map((item) => {
+                const dollar = item.lastIndexOf("$");
+                const name =
+                  dollar > 0 ? item.slice(0, dollar).replace(/[\s·•]+$/g, "").trim() : item;
+                const price = dollar > 0 ? item.slice(dollar) : "";
+                return (
+                  <li key={item} className="flex justify-between gap-3 text-[14px]">
+                    <span className="text-ink">{name}</span>
+                    <span className="tabular-nums text-muted">{price}</span>
+                  </li>
+                );
+              })}
+            </ul>
+            {doc.facts.itemsLikelyIncomplete ? (
+              <p className="mt-2 text-[12px] text-muted">
+                Some line items may be missing — check the photo or Full Text.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
         <div className="border-t border-rule px-4 py-3">
           <p className="text-[12px] text-muted">Tags</p>
           <div className="mt-2 flex flex-wrap gap-2">
