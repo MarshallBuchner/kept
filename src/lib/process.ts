@@ -1,4 +1,4 @@
-import { classify, extractFacts, titleFromText } from "./classify";
+import { classify, extractFacts, normalizeOcrText, titleFromText } from "./classify";
 import { fileToDataUrl, fileToThumbnail, prepareForOcr } from "./image";
 import { readImageText } from "./ocr";
 import type { DocCategory, KeptDoc } from "./types";
@@ -13,7 +13,7 @@ export async function processImage(
     fileToDataUrl(file),
     prepareForOcr(file),
   ]);
-  const text = await readImageText(ocrSource, onProgress);
+  const text = normalizeOcrText(await readImageText(ocrSource, onProgress));
   const cleaned = text || "Could not read text from this document.";
   const category = preferredCategory ?? classify(cleaned);
   return {
