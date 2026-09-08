@@ -190,11 +190,23 @@ function parseReceiptItems(text: string): { name: string; price: string }[] {
 
   for (const line of lines) {
     if (line.length < 4 || SKIP_LINE.test(line) || SECTION_HEADER.test(line)) continue;
-    if (/%/.test(line) && !/\d\.\d{2}/.test(line)) continue;
+    // Skip percent-only noise, but keep hyphen prices like "F 2-43".
+    if (/%/.test(line) && !/\d{1,3}[.\-–—]\d{2}/.test(line)) continue;
 
+    const recovered = recoverMangledItem(line);
     const structured = parseStructuredItem(line);
-    const price = structured?.price ?? priceFromLine(line);
-    const name = structured?.name ?? itemNameFromLine(line);
+    let price = recovered?.price ?? structured?.price ?? priceFromLine(line);
+    let name = recovered?.name ?? structured?.name ?? itemNameFromLine(line);
+
+    // Duplicate SKU with garbage price (e.g. "VINYL GLOVES … 32785"): reuse prior price.
+    if (name && !isPlausibleItemPrice(price)) {
+      const prior = findItemByName(items, index, name);
+      if (prior && looksLikeProductCodeLine(line)) {
+        prior.qty += 1;
+        continue;
+      }
+      price = undefined;
+    }
     if (!price || !name) continue;
 
     // Dedupe by name only when prices match or one looks like a truncated OCR of the other.
@@ -232,6 +244,50 @@ function parseReceiptItems(text: string): { name: string; price: string }[] {
   }));
 }
 
+function findItemByName(
+  items: { name: string; price: string; qty: number }[],
+  index: Map<string, number>,
+  name: string,
+) {
+  const nameKey = name.toLowerCase();
+  const hit = [...index.entries()].find(([key]) => key.startsWith(`${nameKey}|`));
+  return hit ? items[hit[1]] : undefined;
+}
+
+function looksLikeProductCodeLine(line: string): boolean {
+  return /\b\d{8,14}\b/.test(line) || /[A-Za-z].*\d{5,}/.test(line);
+}
+
+function isPlausibleItemPrice(price: string | undefined): price is string {
+  if (!price) return false;
+  const n = Number(price);
+  return Number.isFinite(n) && n > 0 && n < 500;
+}
+
+/**
+ * Rescue common Walmart OCR collapses: broken UPC + hyphen price, or known
+ * SKU name with no usable amount.
+ */
+function recoverMangledItem(line: string): { name: string; price: string } | undefined {
+  const parsley =
+    line.match(
+      /\bmcc\/?\s*sch\s*pars\b.*?[FTNXO]?\s*(\d{1,3})[.\-–—](\d{2})\b/i,
+    ) ?? line.match(/\bpars(?:ley)?\b.*?[FTNXO]?\s*(\d{1,3})[.\-–—](\d{2})\b/i);
+  if (parsley) {
+    return { name: "McCormick Parsley", price: `${parsley[1]}.${parsley[2]}` };
+  }
+
+  const named = line.match(
+    /^([A-Z][A-Z0-9 /&'\-]{3,}?)\s+(?:\d{6,14}|[\d\s]{2,}|[0o]{1,2}\s*[a-z]{1,3})[:!]?\s+[FTNXO]?\s*(\d{1,3})[.\-–—](\d{2})\s*[A-Za-z;,]?\s*$/i,
+  );
+  if (named) {
+    const name = cleanItemName(named[1]);
+    if (name) return { name, price: `${named[2]}.${named[3]}` };
+  }
+
+  return undefined;
+}
+
 /** OCR often drops a leading digit on a duplicate SKU price (11.72 → 1.72). */
 function isTruncatedPricePair(a: string, b: string): boolean {
   if (a === b) return false;
@@ -264,17 +320,22 @@ function stitchSplitItemLines(lines: string[]): string[] {
 /** Walmart: NAME UPC PRICE X ; Target-ish: ID NAME FC $PRICE */
 function parseStructuredItem(line: string): { name: string; price: string } | undefined {
   // Optional tax flag letter (F/T/N/X/O) between UPC and price — common on Walmart food lines.
+  // Also tolerate a colon/bang stuck to the UPC ("…014718: 3.98 X").
   const walmart =
     line.match(
-      /^(.+?)\s+(\d{8,14})[!lI]?\s*(?:[FTNXO]\s*)?(\d{1,3}\.\d{2})\s*[A-Za-z]?\s*$/i,
+      /^(.+?)\s+(\d{8,14})[!lI:]?\s*(?:[FTNXO]\s*)?(\d{1,3}\.\d{2})\s*[A-Za-z]?\s*$/i,
     ) ??
     // OCR glues flag to price: "... 005210000738 F2.44 O" or "...738F 2.44 O"
     line.match(
-      /^(.+?)\s+(\d{8,14})[!lI]?\s*[FTNXO]?(\d{1,3}\.\d{2})\s*[A-Za-z]?\s*$/i,
+      /^(.+?)\s+(\d{8,14})[!lI:]?\s*[FTNXO]?(\d{1,3}\.\d{2})\s*[A-Za-z]?\s*$/i,
+    ) ??
+    // Hyphen used as decimal: "... F 2-43 ;"
+    line.match(
+      /^(.+?)\s+(\d{8,14})[!lI:]?\s*(?:[FTNXO]\s*)?(\d{1,3})[.\-–—](\d{2})\s*[A-Za-z;,]?\s*$/i,
     ) ??
     // OCR sometimes drops the decimal: "... 019339700848 1172 X" or "... 11 72 X"
     line.match(
-      /^(.+?)\s+(\d{8,14})[!lI]?\s*(?:[FTNXO]\s*)?(\d{1,3})[.,\s](\d{2})\s*[A-Za-z]?\s*$/i,
+      /^(.+?)\s+(\d{8,14})[!lI:]?\s*(?:[FTNXO]\s*)?(\d{1,3})[.,\s](\d{2})\s*[A-Za-z]?\s*$/i,
     );
 
   if (walmart) {
@@ -286,7 +347,7 @@ function parseStructuredItem(line: string): { name: string; price: string } | un
           ? walmart[3]
           : undefined;
     // If we only got an integer price after a UPC, skip — too unreliable (11 vs 11.72).
-    if (!name || !price) return undefined;
+    if (!name || !price || !isPlausibleItemPrice(price)) return undefined;
     return { name, price: Number(price).toFixed(2) };
   }
 
@@ -329,9 +390,14 @@ function cleanItemName(raw: string): string | undefined {
 }
 
 function priceFromLine(line: string): string | undefined {
-  const cleaned = line.replace(/[¤£¢]/g, " ");
+  const cleaned = line.replace(/[¤£¢]/g, " ").replace(/[;]+$/g, "").trim();
   const end = cleaned.match(/(\d{1,3})\.(\d{2})\s*[A-Za-z↓]?\s*$/);
   if (end) return `${end[1]}.${end[2]}`;
+  // OCR often turns "2.43" into "2-43" on food lines.
+  const hyphen = cleaned.match(/(\d{1,3})[-–—](\d{2})\s*[A-Za-z;,]?\s*$/);
+  if (hyphen) return `${hyphen[1]}.${hyphen[2]}`;
+  const flaggedHyphen = cleaned.match(/[FTNXO]\s*(\d{1,3})[-–—.](\d{2})\b/i);
+  if (flaggedHyphen) return `${flaggedHyphen[1]}.${flaggedHyphen[2]}`;
   const percent = cleaned.match(/(\d{1,3})\.(\d{1,2})\s*%\s*$/);
   if (percent) return `${percent[1]}.${percent[2].padEnd(2, "0").slice(0, 2)}`;
   const short = cleaned.match(/(\d{1,3})\.(\d)\s*$/);
