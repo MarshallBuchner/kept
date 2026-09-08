@@ -143,7 +143,10 @@ export function scoreReceiptText(text: string): number {
 }
 
 const SKIP_LINE =
-  /walmart|save money|live better|total|subtotal|tax|approval|terminal|payment|signature|ref #|cashier|change|manager|st#|op#|te#|tr#|phone|coupon|visa|amex|mastercard|debit|philadelphia|bluebell|tend\b|\baid\b|trans id|validation|cartwheel|saved \$|items sold|customer copy|survey|feedback|expect more|pay less|tc#|aac\b|auth#|expires|purchase|regular sale/i;
+  /walmart|save money|live better|total|subtotal|tax|approval|terminal|payment|signature|ref #|cashier|change|manager|st#|op#|te#|tr#|phone|coupon|visa|amex|mastercard|debit|philadelphia|bluebell|tend\b|\baid\b|trans id|validation|cartwheel|saved \$|items sold|customer copy|survey|feedback|expect more|pay less|tc#|aac\b|auth#|expires|purchase|regular sale|your redcard/i;
+
+const SECTION_HEADER =
+  /^(cleaning supplies|grocery|health|beauty|cosmetics|home|produce|electronics|clothing|apparel)\b/i;
 
 const NAME_FIXES: [RegExp, string][] = [
   [/\bdrbng\b/i, "Dressing"],
@@ -159,21 +162,47 @@ const NAME_FIXES: [RegExp, string][] = [
   [/\bstko\b/i, ""],
   [/\bsteko\b/i, ""],
   [/\bgl\s*oves\b/i, "Gloves"],
+  [/\bgi\s*oves\b/i, "Gloves"],
   [/\bdishlim\b/i, "Dish Liquid"],
+  [/\bdual\s*\d*\b/i, "Dual"],
+  [/\bmcc\/?\s*sch\s*pars\b/i, "McCormick Parsley"],
+  [/\blean\s*cuisin\b/i, "Lean Cuisine"],
+  [/\bbird\s*subb?\b/i, "Birdseye"],
 ];
 
 function parseReceiptItems(text: string): { name: string; price: string }[] {
   const items: { name: string; price: string; qty: number }[] = [];
   const index = new Map<string, number>();
+
   for (const raw of text.split(/\n/)) {
     const line = raw.trim();
-    if (line.length < 4 || SKIP_LINE.test(line)) continue;
-    const withoutPrice = line.replace(/\s*[A-Z]?\s*\d{1,3}\.\d{1,2}\s*%?\s*$/i, "");
-    if (/%/.test(withoutPrice)) continue;
-    const price = priceFromLine(line);
-    const name = itemNameFromLine(line);
+    if (line.length < 4 || SKIP_LINE.test(line) || SECTION_HEADER.test(line)) continue;
+    if (/%/.test(line) && !/\d\.\d{2}/.test(line)) continue;
+
+    const structured = parseStructuredItem(line);
+    const price = structured?.price ?? priceFromLine(line);
+    const name = structured?.name ?? itemNameFromLine(line);
     if (!price || !name) continue;
-    const key = `${name.toLowerCase()}|${price}`;
+
+    // Dedupe by name only when prices match or one looks like a truncated OCR of the other.
+    const nameKey = name.toLowerCase();
+    const existingByName = [...index.entries()].find(([key]) => key.startsWith(`${nameKey}|`));
+    if (existingByName) {
+      const idx = existingByName[1];
+      const prior = items[idx];
+      if (prior.price === price) {
+        prior.qty += 1;
+        continue;
+      }
+      // Prefer the longer/more precise price when OCR drops a digit (1.72 vs 11.72).
+      if (Math.abs(Number(prior.price) * 10 - Number(price)) < 0.001 ||
+        Math.abs(Number(price) * 10 - Number(prior.price)) < 0.001) {
+        prior.price = Number(prior.price) > Number(price) ? prior.price : price;
+        continue;
+      }
+    }
+
+    const key = `${nameKey}|${price}`;
     const existing = index.get(key);
     if (existing !== undefined) {
       items[existing].qty += 1;
@@ -182,39 +211,51 @@ function parseReceiptItems(text: string): { name: string; price: string }[] {
     index.set(key, items.length);
     items.push({ name, price, qty: 1 });
   }
+
   return items.map((item) => ({
     name: item.qty > 1 ? `${item.name} × ${item.qty}` : item.name,
     price: item.qty > 1 ? (Number(item.price) * item.qty).toFixed(2) : item.price,
   }));
 }
 
-function priceFromLine(line: string): string | undefined {
-  const cleaned = line.replace(/[¤£¢]/g, " ");
-  const end = cleaned.match(/(\d{1,3})\.(\d{2})\s*[A-Za-z]?\s*$/);
-  if (end) return `${end[1]}.${end[2]}`;
-  const percent = cleaned.match(/(\d{1,3})\.(\d{1,2})\s*%\s*$/);
-  if (percent) return `${percent[1]}.${percent[2].padEnd(2, "0").slice(0, 2)}`;
-  const short = cleaned.match(/(\d{1,3})\.(\d)\s*$/);
-  if (short) return `${short[1]}.${short[2]}0`;
-  const flagged = cleaned.match(/(\d{1,3})[.,:](\d{2})\s*[A-Za-z]\s*$/);
-  if (flagged) return `${flagged[1]}.${flagged[2]}`;
-  const glued = cleaned.match(/\b[FTOXN](\d)(\d{2})\s+[A-Za-z]\s*$/i);
-  if (glued) return `${glued[1]}.${glued[2]}`;
-  const iAsOne = cleaned.match(/\bi[l1](\d{2})[xX]\s*$/);
-  if (iAsOne) return `11.${iAsOne[1]}`;
+/** Walmart: NAME UPC PRICE X ; Target-ish: ID NAME FC $PRICE */
+function parseStructuredItem(line: string): { name: string; price: string } | undefined {
+  const walmart =
+    line.match(
+      /^(.+?)\s+(\d{8,14})[!lI]?\s+(\d{1,3}\.\d{2})\s*[A-Za-z]?\s*$/,
+    ) ??
+    // OCR sometimes drops the decimal: "... 019339700848 1172 X" or "... 11 72 X"
+    line.match(/^(.+?)\s+(\d{8,14})[!lI]?\s+(\d{1,3})[.,\s](\d{2})\s*[A-Za-z]?\s*$/);
+
+  if (walmart) {
+    const name = cleanItemName(walmart[1]);
+    const price =
+      walmart[4] !== undefined
+        ? `${walmart[3]}.${walmart[4]}`
+        : walmart[3].includes(".")
+          ? walmart[3]
+          : undefined;
+    // If we only got an integer price after a UPC, skip — too unreliable (11 vs 11.72).
+    if (!name || !price) return undefined;
+    return { name, price: Number(price).toFixed(2) };
+  }
+
+  const target = line.match(
+    /^(?:\d{4,12}\s+)?([A-Z][A-Z0-9 /&'\-]{3,}?)\s+(?:FC|T|F|C)?\s*\$?\s*(\d{1,3}\.\d{2})\s*[↓-]?\s*$/i,
+  );
+  if (target) {
+    const name = cleanItemName(target[1]);
+    if (!name) return undefined;
+    return { name, price: Number(target[2]).toFixed(2) };
+  }
+
   return undefined;
 }
 
-function itemNameFromLine(line: string): string | undefined {
-  let name = line
+function cleanItemName(raw: string): string | undefined {
+  let name = raw
     .replace(/[¤£¢©><|%#§]/g, " ")
     .replace(/\b\d{6,14}\b/g, " ")
-    .replace(/\b\d{4,}\b/g, " ")
-    .replace(/\b\d[A-Za-z0-9]{2,}\b/g, " ")
-    .replace(/\b[A-Za-z]+[0-9]+\b/g, " ")
-    .replace(/\b[FTOXN]\d{3}\b/gi, " ")
-    .replace(/\bi[l1]\d{2}[xX]\b/g, " ")
-    .replace(/(\d{1,3}[.,:]\d{1,2})\s*%?\s*[A-Za-z]?\s*$/g, " ")
     .replace(/\s+/g, " ")
     .trim();
   for (const [pattern, replacement] of NAME_FIXES) {
@@ -230,6 +271,36 @@ function itemNameFromLine(line: string): string | undefined {
   name = name.replace(/\s+/g, " ").replace(/\s+[A-Za-z]$/, "").trim();
   if (!isPlausibleItemName(name)) return undefined;
   return name.slice(0, 36);
+}
+
+function priceFromLine(line: string): string | undefined {
+  const cleaned = line.replace(/[¤£¢]/g, " ");
+  const end = cleaned.match(/(\d{1,3})\.(\d{2})\s*[A-Za-z↓]?\s*$/);
+  if (end) return `${end[1]}.${end[2]}`;
+  const percent = cleaned.match(/(\d{1,3})\.(\d{1,2})\s*%\s*$/);
+  if (percent) return `${percent[1]}.${percent[2].padEnd(2, "0").slice(0, 2)}`;
+  const short = cleaned.match(/(\d{1,3})\.(\d)\s*$/);
+  if (short) return `${short[1]}.${short[2]}0`;
+  const flagged = cleaned.match(/(\d{1,3})[.,:](\d{2})\s*[A-Za-z]\s*$/);
+  if (flagged) return `${flagged[1]}.${flagged[2]}`;
+  const glued = cleaned.match(/\b[FTOXN](\d)(\d{2})\s+[A-Za-z]\s*$/i);
+  if (glued) return `${glued[1]}.${glued[2]}`;
+  const iAsOne = cleaned.match(/\bi[l1](\d{2})[xX]\s*$/);
+  if (iAsOne) return `11.${iAsOne[1]}`;
+  return undefined;
+}
+
+function itemNameFromLine(line: string): string | undefined {
+  return cleanItemName(
+    line
+      .replace(/\b\d{6,14}\b/g, " ")
+      .replace(/\b\d{4,}\b/g, " ")
+      .replace(/\b\d[A-Za-z0-9]{2,}\b/g, " ")
+      .replace(/\b[A-Za-z]+[0-9]+\b/g, " ")
+      .replace(/\b[FTOXN]\d{3}\b/gi, " ")
+      .replace(/\bi[l1]\d{2}[xX]\b/g, " ")
+      .replace(/(\d{1,3}[.,:]\d{1,2})\s*%?\s*[A-Za-z↓]?\s*$/g, " "),
+  );
 }
 
 function isPlausibleItemName(name: string): boolean {
