@@ -1,12 +1,17 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f4efe6;
-  --foreground: #1c1915;
-  --card: #fbf8f2;
-  --muted: #6f675c;
-  --accent: #b54a32;
-  --rule: #d9d0c3;
+  /* Sampled from GPT phone mockups */
+  --background: #fbfaf8;
+  --foreground: #121412;
+  --card: #ffffff;
+  --muted: #6f746f;
+  --accent: #516a57;
+  --accent-soft: #dfe8e1;
+  --accent-strong: #3f5544;
+  --chip: #efefed;
+  --rule: #e5e5e2;
+  --danger: #b42318;
 }
 
 @theme inline {
@@ -17,14 +22,61 @@
   --color-card: var(--card);
   --color-muted: var(--muted);
   --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-strong: var(--accent-strong);
+  --color-chip: var(--chip);
   --color-rule: var(--rule);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-serif: var(--font-newsreader);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-kept-sans);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), system-ui, sans-serif;
+  font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+@keyframes kept-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes kept-pulse-soft {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes kept-check {
+  from {
+    transform: scale(0.75);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-fade-up {
+  animation: kept-fade-up 0.4s ease-out both;
+}
+
+.animate-pulse-soft {
+  animation: kept-pulse-soft 1.5s ease-in-out infinite;
+}
+
+.animate-check {
+  animation: kept-check 0.25s ease-out both;
 }

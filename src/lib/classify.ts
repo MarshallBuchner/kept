@@ -1,4 +1,7 @@
-import type { ClipFacts, ClipKind } from "./types";
+import type { DocCategory, DocFacts } from "./types";
+
+export type ClipFacts = DocFacts;
+export type ClipKind = DocCategory;
 
 const MERCHANTS: [RegExp, string][] = [
   [/walmart/i, "Walmart"],
@@ -19,7 +22,7 @@ export function findMerchant(text: string): string | undefined {
   return undefined;
 }
 
-export function extractFacts(text: string): ClipFacts {
+export function extractFacts(text: string): DocFacts {
   const merchant = findMerchant(text);
   const items = parseReceiptItems(text);
   const priced = items.map((item) => item.price);
@@ -56,13 +59,13 @@ export function titleFromText(text: string): string {
   return line.slice(0, 80);
 }
 
-export function classify(text: string): ClipKind {
+export function classify(text: string): DocCategory {
   const t = text.toLowerCase();
-  const scores: Record<Exclude<ClipKind, "other">, number> = {
+  const scores: Record<DocCategory, number> = {
     receipt: 0,
-    event: 0,
-    recipe: 0,
-    contact: 0,
+    invoice: 0,
+    note: 0,
+    document: 0,
   };
 
   if (findMerchant(text)) scores.receipt += 4;
@@ -74,24 +77,24 @@ export function classify(text: string): ClipKind {
     scores.receipt += 3;
   }
   if (parseReceiptItems(text).length >= 2) scores.receipt += 2;
-  if (/\btickets?\b|gate |row |seat |doors open|rsvp|admission|venue/.test(t)) {
-    scores.event += 3;
+  if (/invoice|bill to|amount due|net\s*\d+|purchase order|po\s*#|remit/.test(t)) {
+    scores.invoice += 4;
   }
-  if (/\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/.test(t)) {
-    scores.event += 1;
-  }
+  if (/due date|balance due|account number|wire transfer/.test(t)) scores.invoice += 2;
   if (/ingredients|tbsp|tsp\b|preheat|oven|cups?\b|bake |whisk |recipe|serves /.test(t)) {
-    scores.recipe += 3;
+    scores.note += 3;
   }
-  if (/\b\d{3}[-.\s]+\d{3}[-.\s]+\d{4}\b|phone:|email:|linkedin/.test(t) || /@\w+\.\w+/.test(t)) {
-    scores.contact += 2;
+  if (/\b\d{3}[-.\s]+\d{3}[-.\s]+\d{4}\b|phone:|email:|linkedin|to-?do|meeting notes/.test(t)) {
+    scores.note += 2;
   }
+  if (/passport|license|contract|statement|warranty|policy|certificate/.test(t)) {
+    scores.document += 3;
+  }
+  if (scores.receipt + scores.invoice + scores.note === 0) scores.document += 1;
 
-  const ranked = (Object.entries(scores) as [Exclude<ClipKind, "other">, number][]).sort(
-    (a, b) => b[1] - a[1],
-  );
+  const ranked = (Object.entries(scores) as [DocCategory, number][]).sort((a, b) => b[1] - a[1]);
   const [kind, score] = ranked[0];
-  return score >= 2 ? kind : "other";
+  return score >= 2 ? kind : "document";
 }
 
 const SKIP_LINE =

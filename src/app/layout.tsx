@@ -1,36 +1,28 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono, Newsreader } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const keptSans = Inter({
+  variable: "--font-kept-sans",
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-const newsreader = Newsreader({
-  variable: "--font-newsreader",
-  subsets: ["latin"],
-  style: ["normal", "italic"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
-  title: "Kept — screenshot inbox",
-  description:
-    "Drop a screenshot. Kept pulls out the useful bit so you can send a card, not a blurry crop.",
+  title: "Kept — Scan it. Clean it. Keep it.",
+  description: "Turn everyday paper into a cleaner, simpler life.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#516a57",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${newsreader.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col bg-paper text-ink">{children}</body>
+    <html lang="en" className={`${keptSans.variable} h-full antialiased`}>
+      <body className={`${keptSans.className} min-h-full bg-paper text-ink`}>{children}</body>
     </html>
   );
 }
