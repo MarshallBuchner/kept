@@ -18,6 +18,7 @@ import {
   IconRotate,
 } from "@/components/Icons";
 import { blobPreviewUrl, cropBlob, enhanceBlob, FULL_CROP, rotateBlob, type CropRect } from "@/lib/image";
+import { logFeedback } from "@/lib/feedback";
 import { processImage } from "@/lib/process";
 import { upsertDoc } from "@/lib/storage";
 import {
@@ -66,6 +67,10 @@ export function CaptureFlow({
   const [extractTab, setExtractTab] = useState<"summary" | "text">("summary");
   const [crop, setCrop] = useState<CropRect>(FULL_CROP);
   const [tool, setTool] = useState<"crop" | "rotate" | "enhance" | "auto">("crop");
+  const [fixing, setFixing] = useState(false);
+  const [fixMerchant, setFixMerchant] = useState("");
+  const [fixDate, setFixDate] = useState("");
+  const [fixTotal, setFixTotal] = useState("");
 
   useEffect(() => {
     return () => {
@@ -80,6 +85,14 @@ export function CaptureFlow({
     }, 850);
     return () => window.clearInterval(id);
   }, [step]);
+
+  useEffect(() => {
+    if (!doc || step !== "extracted") return;
+    setFixMerchant(doc.facts.merchant ?? doc.title);
+    setFixDate(doc.facts.dates[0] ?? "");
+    setFixTotal(doc.facts.total ?? "");
+    setFixing(false);
+  }, [doc, step]);
 
   function setFile(file: File | Blob) {
     if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
@@ -122,10 +135,37 @@ export function CaptureFlow({
     }
   }
 
-  function finish() {
+  function finish(status: "confirmed" | "needs_fix", patched?: KeptDoc) {
+    const current = patched ?? doc;
+    if (!current) return;
+    const reviewed: KeptDoc = {
+      ...current,
+      reviewStatus: status,
+      reviewedAt: new Date().toISOString(),
+    };
+    logFeedback(reviewed, status);
+    const docs = upsertDoc(reviewed);
+    onSaved(docs, reviewed.id);
+  }
+
+  function saveFixes() {
     if (!doc) return;
-    const docs = upsertDoc(doc);
-    onSaved(docs, doc.id);
+    const total = fixTotal.replace(/[^0-9.]/g, "");
+    const merchant = fixMerchant.trim() || doc.title;
+    const date = fixDate.trim();
+    const patched: KeptDoc = {
+      ...doc,
+      title: merchant,
+      facts: {
+        ...doc.facts,
+        merchant,
+        total: total || doc.facts.total,
+        totalIsEstimate: false,
+        dates: date ? [date, ...doc.facts.dates.filter((d) => d !== date)] : doc.facts.dates,
+      },
+    };
+    setDoc(patched);
+    finish("needs_fix", patched);
   }
 
   return (
@@ -417,7 +457,7 @@ export function CaptureFlow({
                     )}
                     {doc.facts.total ? (
                       <li className="flex justify-between border-t border-rule pt-3 text-[15px] font-semibold">
-                        <span>Total</span>
+                        <span>{doc.facts.totalIsEstimate ? "About" : "Total"}</span>
                         <span>${doc.facts.total}</span>
                       </li>
                     ) : null}
@@ -433,15 +473,78 @@ export function CaptureFlow({
                 <MetaRow label="Category" value={CATEGORY_LABEL[doc.category]} />
                 <MetaRow label="Date" value={doc.facts.dates[0] ?? "—"} />
                 <MetaRow label="Merchant" value={doc.facts.merchant ?? doc.title} />
+                {doc.facts.totalIsEstimate ? (
+                  <p className="rounded-[14px] bg-[#f4f1e4] px-4 py-3 text-[13px] text-[#6a6248]">
+                    Total looks estimated — please double-check before saving.
+                  </p>
+                ) : null}
               </div>
 
-              <button
-                type="button"
-                onClick={finish}
-                className="mt-2 rounded-[16px] bg-accent px-4 py-[15px] text-[16px] font-semibold text-white"
-              >
-                Continue
-              </button>
+              {fixing ? (
+                <div className="space-y-3 rounded-[18px] bg-card p-4 ring-1 ring-rule">
+                  <p className="text-[15px] font-semibold text-ink">Fix what looks wrong</p>
+                  <label className="block">
+                    <span className="text-[12px] text-muted">Merchant</span>
+                    <input
+                      value={fixMerchant}
+                      onChange={(e) => setFixMerchant(e.target.value)}
+                      className="mt-1 w-full rounded-[12px] bg-chip px-3 py-2.5 text-[14px] outline-none ring-1 ring-transparent focus:ring-accent/40"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-[12px] text-muted">Date</span>
+                    <input
+                      value={fixDate}
+                      onChange={(e) => setFixDate(e.target.value)}
+                      placeholder="MM/DD/YY"
+                      className="mt-1 w-full rounded-[12px] bg-chip px-3 py-2.5 text-[14px] outline-none ring-1 ring-transparent focus:ring-accent/40"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-[12px] text-muted">Total</span>
+                    <input
+                      value={fixTotal}
+                      onChange={(e) => setFixTotal(e.target.value)}
+                      inputMode="decimal"
+                      placeholder="35.36"
+                      className="mt-1 w-full rounded-[12px] bg-chip px-3 py-2.5 text-[14px] outline-none ring-1 ring-transparent focus:ring-accent/40"
+                    />
+                  </label>
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setFixing(false)}
+                      className="rounded-[14px] bg-chip px-3 py-3 text-[14px] font-semibold text-ink"
+                    >
+                      Back
+                    </button>
+                    <button
+                      type="button"
+                      onClick={saveFixes}
+                      className="rounded-[14px] bg-accent px-3 py-3 text-[14px] font-semibold text-white"
+                    >
+                      Save fixes
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFixing(true)}
+                    className="rounded-[16px] bg-chip px-3 py-[15px] text-[15px] font-semibold text-ink"
+                  >
+                    Fix this
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => finish("confirmed")}
+                    className="rounded-[16px] bg-accent px-3 py-[15px] text-[15px] font-semibold text-white"
+                  >
+                    Looks right
+                  </button>
+                </div>
+              )}
             </div>
           </>
         ) : null}

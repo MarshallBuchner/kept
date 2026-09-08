@@ -2,13 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { LogoMark } from "@/components/Logo";
+import { feedbackSummary } from "@/lib/feedback";
 import { loadDocs, saveDocs } from "@/lib/storage";
 
 export function SettingsScreen() {
   const [count, setCount] = useState(0);
+  const [feedback, setFeedback] = useState({ total: 0, confirmed: 0, needsFix: 0 });
 
   useEffect(() => {
     setCount(loadDocs().length);
+    setFeedback(feedbackSummary());
   }, []);
 
   function clearArchive() {
@@ -43,6 +46,27 @@ export function SettingsScreen() {
           <div className="flex justify-between border-t border-rule pt-3">
             <dt className="text-muted">OCR</dt>
             <dd className="font-medium">On-device</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section className="rounded-[18px] bg-card p-5 ring-1 ring-rule">
+        <h2 className="text-[15px] font-semibold">Beta accuracy checks</h2>
+        <p className="mt-2 text-[13px] leading-5 text-muted">
+          After each scan, “Looks right” / “Fix this” is saved on this device only.
+        </p>
+        <dl className="mt-4 space-y-3 text-[14px]">
+          <div className="flex justify-between border-t border-rule pt-3">
+            <dt className="text-muted">Checks logged</dt>
+            <dd className="font-medium">{feedback.total}</dd>
+          </div>
+          <div className="flex justify-between border-t border-rule pt-3">
+            <dt className="text-muted">Looks right</dt>
+            <dd className="font-medium text-accent">{feedback.confirmed}</dd>
+          </div>
+          <div className="flex justify-between border-t border-rule pt-3">
+            <dt className="text-muted">Needed a fix</dt>
+            <dd className="font-medium">{feedback.needsFix}</dd>
           </div>
         </dl>
       </section>

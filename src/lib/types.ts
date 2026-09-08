@@ -17,6 +17,8 @@ export type DocFacts = {
   items?: string[];
 };
 
+export type ReviewStatus = "unreviewed" | "confirmed" | "needs_fix";
+
 export type KeptDoc = {
   id: string;
   createdAt: string;
@@ -28,6 +30,8 @@ export type KeptDoc = {
   facts: DocFacts;
   tags: DocTag[];
   notes: string;
+  reviewStatus?: ReviewStatus;
+  reviewedAt?: string;
 };
 
 /** @deprecated Prefer KeptDoc — kept for share payload compatibility during migration */

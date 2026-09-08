@@ -17,6 +17,8 @@ type LegacyClip = {
   facts: KeptDoc["facts"];
   tags?: DocTag[];
   notes?: string;
+  reviewStatus?: KeptDoc["reviewStatus"];
+  reviewedAt?: string;
 };
 
 function mapLegacyKind(kind?: string): DocCategory {
@@ -50,6 +52,8 @@ function normalizeDoc(raw: LegacyClip): KeptDoc {
     facts: raw.facts ?? extractFacts(text),
     tags: raw.tags ?? [],
     notes: raw.notes ?? "",
+    reviewStatus: raw.reviewStatus ?? "unreviewed",
+    reviewedAt: raw.reviewedAt,
   };
 }
 
@@ -85,12 +89,18 @@ export function refreshDocs(docs: KeptDoc[]): KeptDoc[] {
     const key = doc.text.replace(/\s+/g, " ").trim();
     if (!key || seen.has(key)) continue;
     seen.add(key);
-    next.push({
-      ...doc,
-      category: classify(doc.text),
-      title: titleFromText(doc.text),
-      facts: extractFacts(doc.text),
-    });
+    const locked = doc.reviewStatus === "confirmed" || doc.reviewStatus === "needs_fix";
+    next.push(
+      locked
+        ? { ...doc, reviewStatus: doc.reviewStatus ?? "unreviewed" }
+        : {
+            ...doc,
+            category: classify(doc.text),
+            title: titleFromText(doc.text),
+            facts: extractFacts(doc.text),
+            reviewStatus: doc.reviewStatus ?? "unreviewed",
+          },
+    );
   }
   saveDocs(next);
   return next;

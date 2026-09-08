@@ -111,6 +111,11 @@ export function DocumentScreen({ id }: { id: string }) {
               year: "numeric",
             })}{" "}
           · {CATEGORY_LABEL[doc.category]}
+          {doc.reviewStatus === "confirmed"
+            ? " · Checked"
+            : doc.reviewStatus === "needs_fix"
+              ? " · Corrected"
+              : ""}
         </p>
       </section>
 
