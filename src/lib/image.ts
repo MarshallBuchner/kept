@@ -104,3 +104,32 @@ export async function enhanceBlob(file: Blob): Promise<Blob> {
 export function blobPreviewUrl(file: Blob): string {
   return URL.createObjectURL(file);
 }
+
+/** Normalized crop rect: x/y/w/h in 0..1 of the source image. */
+export type CropRect = { x: number; y: number; w: number; h: number };
+
+export const FULL_CROP: CropRect = { x: 0.01, y: 0.01, w: 0.98, h: 0.98 };
+
+export async function cropBlob(file: Blob, crop: CropRect): Promise<Blob> {
+  const bitmap = await createImageBitmap(file);
+  const sx = Math.max(0, Math.floor(crop.x * bitmap.width));
+  const sy = Math.max(0, Math.floor(crop.y * bitmap.height));
+  const sw = Math.max(1, Math.min(bitmap.width - sx, Math.floor(crop.w * bitmap.width)));
+  const sh = Math.max(1, Math.min(bitmap.height - sy, Math.floor(crop.h * bitmap.height)));
+  const canvas = document.createElement("canvas");
+  canvas.width = sw;
+  canvas.height = sh;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    bitmap.close();
+    throw new Error("Could not crop this image.");
+  }
+  ctx.drawImage(bitmap, sx, sy, sw, sh, 0, 0, sw, sh);
+  bitmap.close();
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, "image/jpeg", 0.94),
+  );
+  if (!blob) throw new Error("Could not crop this image.");
+  return blob;
+}
+

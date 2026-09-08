@@ -36,6 +36,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+# tesseract local cache
+eng.traineddata
+*.traineddata
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

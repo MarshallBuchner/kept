@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { CropEditor } from "@/components/CropEditor";
 import {
   IconBack,
   IconCamera,
@@ -16,7 +17,7 @@ import {
   IconReceipt,
   IconRotate,
 } from "@/components/Icons";
-import { blobPreviewUrl, enhanceBlob, rotateBlob } from "@/lib/image";
+import { blobPreviewUrl, cropBlob, enhanceBlob, FULL_CROP, rotateBlob, type CropRect } from "@/lib/image";
 import { processImage } from "@/lib/process";
 import { upsertDoc } from "@/lib/storage";
 import {
@@ -63,6 +64,8 @@ export function CaptureFlow({
   const [busyTool, setBusyTool] = useState(false);
   const [doc, setDoc] = useState<KeptDoc | null>(null);
   const [extractTab, setExtractTab] = useState<"summary" | "text">("summary");
+  const [crop, setCrop] = useState<CropRect>(FULL_CROP);
+  const [tool, setTool] = useState<"crop" | "rotate" | "enhance" | "auto">("crop");
 
   useEffect(() => {
     return () => {
@@ -82,6 +85,8 @@ export function CaptureFlow({
     if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
     setBlob(file);
     setPreview(blobPreviewUrl(file));
+    setCrop(FULL_CROP);
+    setTool("crop");
     setStep("review");
     setError(null);
   }
@@ -105,12 +110,12 @@ export function CaptureFlow({
     setProgress(0);
     setProcessIndex(0);
     try {
-      const next = await processImage(blob, setProgress, category);
-      const docs = upsertDoc(next);
+      const cropped = await cropBlob(blob, crop);
+      const next = await processImage(cropped, setProgress, category);
+      upsertDoc(next);
       setDoc(next);
       setProcessIndex(PROCESS_STEPS.length - 1);
       window.setTimeout(() => setStep("extracted"), 450);
-      void docs;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not process that image.");
       setStep("review");
@@ -234,41 +239,62 @@ export function CaptureFlow({
               </button>
             </header>
             <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-4 pb-6">
-              <div className="relative overflow-hidden rounded-[18px] bg-[#1c1c1c]">
-                <img src={preview} alt="Document preview" className="max-h-[58vh] w-full object-contain" />
-                <div className="pointer-events-none absolute inset-[14%] border border-white/90">
-                  {(["tl", "tr", "bl", "br"] as const).map((corner) => (
-                    <span
-                      key={corner}
-                      className={`absolute h-4 w-4 rounded-full border-[3px] border-accent bg-white ${
-                        corner === "tl"
-                          ? "-left-2 -top-2"
-                          : corner === "tr"
-                            ? "-right-2 -top-2"
-                            : corner === "bl"
-                              ? "-bottom-2 -left-2"
-                              : "-bottom-2 -right-2"
-                      }`}
-                    />
-                  ))}
-                </div>
-              </div>
+              <CropEditor src={preview} crop={crop} onChange={setCrop} />
               <div className="grid grid-cols-4 gap-2">
                 {[
-                  { label: "Crop", icon: IconCrop, action: () => undefined, disabled: true },
-                  { label: "Rotate", icon: IconRotate, action: () => void runTool("rotate"), disabled: busyTool },
-                  { label: "Enhance", icon: IconEnhance, action: () => void runTool("enhance"), disabled: busyTool },
-                  { label: "Auto", icon: IconEnhance, action: () => void runTool("enhance"), disabled: busyTool },
-                ].map((tool) => (
+                  {
+                    label: "Crop",
+                    icon: IconCrop,
+                    id: "crop" as const,
+                    action: () => {
+                      setTool("crop");
+                      setCrop(FULL_CROP);
+                    },
+                    disabled: false,
+                  },
+                  {
+                    label: "Rotate",
+                    icon: IconRotate,
+                    id: "rotate" as const,
+                    action: () => {
+                      setTool("rotate");
+                      void runTool("rotate");
+                    },
+                    disabled: busyTool,
+                  },
+                  {
+                    label: "Enhance",
+                    icon: IconEnhance,
+                    id: "enhance" as const,
+                    action: () => {
+                      setTool("enhance");
+                      void runTool("enhance");
+                    },
+                    disabled: busyTool,
+                  },
+                  {
+                    label: "Auto",
+                    icon: IconEnhance,
+                    id: "auto" as const,
+                    action: () => {
+                      setTool("auto");
+                      setCrop(FULL_CROP);
+                      void runTool("enhance");
+                    },
+                    disabled: busyTool,
+                  },
+                ].map((item) => (
                   <button
-                    key={tool.label}
+                    key={item.label}
                     type="button"
-                    disabled={tool.disabled}
-                    onClick={tool.action}
-                    className="flex flex-col items-center gap-1 rounded-[14px] bg-chip px-2 py-3 text-[11px] font-medium text-ink disabled:opacity-45"
+                    disabled={item.disabled}
+                    onClick={item.action}
+                    className={`flex flex-col items-center gap-1 rounded-[14px] px-2 py-3 text-[11px] font-medium disabled:opacity-45 ${
+                      tool === item.id ? "bg-accent-soft text-accent ring-1 ring-accent/30" : "bg-chip text-ink"
+                    }`}
                   >
-                    <tool.icon size={18} />
-                    {tool.label}
+                    <item.icon size={18} />
+                    {item.label}
                   </button>
                 ))}
               </div>
