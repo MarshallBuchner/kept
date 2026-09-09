@@ -80,3 +80,31 @@ body {
 .animate-check {
   animation: kept-check 0.25s ease-out both;
 }
+
+@media print {
+  @page {
+    margin: 0.55in;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #121412 !important;
+  }
+
+  /* Let print sheets use the full page, not the phone column. */
+  body * {
+    box-shadow: none !important;
+  }
+
+  .print-sheet {
+    display: block !important;
+    width: 100%;
+    max-width: 7.2in;
+    margin: 0 auto;
+  }
+
+  .print-sheet-photo img {
+    break-inside: avoid;
+  }
+}
