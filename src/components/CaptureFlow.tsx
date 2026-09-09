@@ -482,7 +482,17 @@ export function CaptureFlow({
 
               <div className="space-y-2">
                 <MetaRow label="Category" value={CATEGORY_LABEL[doc.category]} />
-                <MetaRow label="Date" value={doc.facts.dates[0] ?? "—"} />
+                <MetaRow
+                  label="Date"
+                  value={
+                    doc.facts.dates[0] ??
+                    new Date(doc.createdAt).toLocaleDateString(undefined, {
+                      year: "numeric",
+                      month: "2-digit",
+                      day: "2-digit",
+                    })
+                  }
+                />
                 <MetaRow label="Merchant" value={doc.facts.merchant ?? doc.title} />
                 {doc.facts.totalIsEstimate ? (
                   <p className="rounded-[14px] bg-[#f4f1e4] px-4 py-3 text-[13px] text-[#6a6248]">

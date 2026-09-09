@@ -128,6 +128,59 @@ assert.equal(
   `live mangled sample should recover enough items, got ${JSON.stringify(e.items)}`,
 );
 
+const cleanMarshalls = `Marshalls
+CARSON VALLEY PLAZA
+REGULAR SALE
+14-JR DRS/SWTR/JK 115416624 19.99 T
+05-KNITWEAR (CASU 114293660 19.99 T
+30-DRESSES 116252269 24.99 T
+25-LADIES FTWR 115625699 24.00 T
+SUBTOTAL 88.97
+NV 7.100% Sales Tax 6.32
+TOTAL 95.29
+AMEX 95.29`;
+
+const noisyMarshalls = `Marshalls
+REGULAR SALE
+14-JR DRS/SWTR/JK
+115416624 19.99 T
+)5-KNITWEAR (CASU $ 19.99
+30-DRESSES 116252269 24.99 T
+25-LADIES FTWR $ 24.00
+SUBTOTAL 88.97
+TOTAL 95.29
+AMEX 95.29`;
+
+const m = extractFacts(cleanMarshalls);
+assert.equal(m.merchant, "Marshalls");
+assert.equal(m.total, "95.29");
+assert.equal(m.itemsLikelyIncomplete, false);
+assert.equal(m.items?.length, 4, `expected 4 Marshalls items, got ${JSON.stringify(m.items)}`);
+assert.ok(
+  m.items?.some((item) => /Dress/i.test(item) && /24\.99/.test(item)),
+  `expected 30-Dresses, got ${JSON.stringify(m.items)}`,
+);
+assert.ok(
+  m.items?.some((item) => /Knitwear/i.test(item) && !/\$/.test(item.split("·")[0])),
+  `knitwear name should not keep trailing $, got ${JSON.stringify(m.items)}`,
+);
+
+const n = extractFacts(noisyMarshalls);
+assert.equal(n.total, "95.29");
+assert.ok(
+  (n.items?.length ?? 0) >= 4,
+  `noisy Marshalls should recover 4 items, got ${JSON.stringify(n.items)}`,
+);
+assert.ok(
+  n.items?.some((item) => /^05-Knitwear/i.test(item.split("·")[0].trim())),
+  `)5- should become 05-, got ${JSON.stringify(n.items)}`,
+);
+assert.ok(
+  !(n.items ?? []).some((item) => /\$\s*·|Casu \$/.test(item)),
+  `trailing $ stripped from names, got ${JSON.stringify(n.items)}`,
+);
+assert.equal(n.itemsLikelyIncomplete, false);
+
 console.log("receipt extraction regressions passed");
 console.log(
   JSON.stringify(
@@ -137,6 +190,8 @@ console.log(
       partialItems: c.items,
       splitItems: d.items,
       liveMangledItems: e.items,
+      marshallsClean: m.items,
+      marshallsNoisy: n.items,
       partialTotal: c.total,
     },
     null,
