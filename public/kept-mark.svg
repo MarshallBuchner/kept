@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none" role="img" aria-label="Kept">
+  <rect width="512" height="512" rx="112" fill="#516a57"/>
+  <g transform="translate(108,82)">
+    <!-- page -->
+    <path
+      d="M24 8h152.5L296 80v232.5c0 9.5-7.7 17.2-17.2 17.2H41.2C31.7 329.7 24 322 24 312.5V25.2C24 15.7 31.7 8 41.2 8Z"
+      fill="#ffffff"
+    />
+    <!-- dog-ear -->
+    <path d="M176.5 8V60.5c0 9.5 7.7 17.2 17.2 17.2H296L176.5 8Z" fill="#d9e4db"/>
+    <path d="M176.5 8 296 80H246.8c-9.5 0-17.3-7.7-17.3-17.2V8Z" fill="#c8d6cb"/>
+    <!-- K -->
+    <path
+      d="M78 84h36v66L184 84h39L149 162l78 92h-40.5L114 175v85H78V84Z"
+      fill="#3f5544"
+    />
+  </g>
+</svg>
