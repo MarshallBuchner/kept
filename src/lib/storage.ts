@@ -119,7 +119,10 @@ export function refreshDocs(docs: KeptDoc[]): KeptDoc[] {
     const key = doc.text.replace(/\s+/g, " ").trim();
     if (!key || seen.has(key)) continue;
     seen.add(key);
-    const locked = doc.reviewStatus === "confirmed" || doc.reviewStatus === "needs_fix";
+    const locked =
+      doc.reviewStatus === "confirmed" ||
+      doc.reviewStatus === "needs_fix" ||
+      Boolean(doc.reviewedAt);
     next.push(
       locked
         ? { ...doc, reviewStatus: doc.reviewStatus ?? "unreviewed" }
