@@ -125,7 +125,7 @@ export function CaptureFlow({
     try {
       const cropped = await cropBlob(blob, crop);
       const next = await processImage(cropped, setProgress, category);
-      upsertDoc(next);
+      // Don't persist until Looks right / Save fixes — avoids re-extract wiping edits.
       setDoc(next);
       setProcessIndex(PROCESS_STEPS.length - 1);
       window.setTimeout(() => setStep("extracted"), 450);
@@ -156,17 +156,23 @@ export function CaptureFlow({
 
   function saveFixes() {
     if (!doc) return;
-    const total = fixTotal.replace(/[^0-9.]/g, "");
-    const merchant = fixMerchant.trim() || doc.title;
+    const merchant = fixMerchant.trim() || doc.facts.merchant || doc.title;
     const date = fixDate.trim();
+    const parsedTotal = normalizeMoneyInput(fixTotal);
+    const total = parsedTotal ?? doc.facts.total;
+    const amounts = uniqueAmounts([
+      ...(total ? [total] : []),
+      ...doc.facts.amounts.filter((amount) => amount !== doc.facts.total),
+    ]);
     const patched: KeptDoc = {
       ...doc,
       title: merchant,
       facts: {
         ...doc.facts,
         merchant,
-        total: total || doc.facts.total,
+        total,
         totalIsEstimate: false,
+        amounts,
         dates: date ? [date, ...doc.facts.dates.filter((d) => d !== date)] : doc.facts.dates,
       },
     };
@@ -494,6 +500,10 @@ export function CaptureFlow({
                   }
                 />
                 <MetaRow label="Merchant" value={doc.facts.merchant ?? doc.title} />
+                <MetaRow
+                  label="Total"
+                  value={doc.facts.total ? `$${doc.facts.total}` : "—"}
+                />
                 {doc.facts.totalIsEstimate ? (
                   <p className="rounded-[14px] bg-[#f4f1e4] px-4 py-3 text-[13px] text-[#6a6248]">
                     Total looks estimated — please double-check before saving.
@@ -614,4 +624,29 @@ function MetaRow({ label, value }: { label: string; value: string }) {
       <span className="text-muted">›</span>
     </div>
   );
+}
+
+/** Accept "$95.29", "95,29", "95.29 " → "95.29" */
+function normalizeMoneyInput(raw: string): string | undefined {
+  const cleaned = raw.replace(/[^0-9.,]/g, "").replace(",", ".");
+  if (!cleaned) return undefined;
+  const match = cleaned.match(/(\d+)(?:\.(\d{0,2}))?/);
+  if (!match) return undefined;
+  const whole = match[1];
+  const cents = (match[2] ?? "").padEnd(2, "0").slice(0, 2);
+  const value = Number(`${whole}.${cents}`);
+  if (!Number.isFinite(value) || value < 0 || value > 20000) return undefined;
+  return value.toFixed(2);
+}
+
+function uniqueAmounts(values: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const value of values) {
+    const key = value.trim();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(key);
+  }
+  return out;
 }

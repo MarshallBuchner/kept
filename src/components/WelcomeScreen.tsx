@@ -25,8 +25,8 @@ export function WelcomeScreen() {
         <LogoMark size={88} />
         <BrandWord className="mt-7 text-[42px] leading-none" />
         <p className="mt-3 text-[17px] font-medium text-ink">Scan it. Clean it. Keep it.</p>
-        <p className="mt-3 max-w-[260px] text-[15px] leading-6 text-muted">
-          Turn everyday paper into a cleaner, simpler life.
+        <p className="mt-3 max-w-[280px] text-[15px] leading-6 text-muted">
+          Turn messy receipts and documents into clean, organized files in seconds.
         </p>
       </div>
 
