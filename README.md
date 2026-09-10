@@ -32,9 +32,11 @@ Kept Pro unlocks unlimited scans + exports via Stripe Checkout.
 ### Stripe setup
 
 1. Copy `env.example` → `.env.local`
-2. Add `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`, `NEXT_PUBLIC_APP_URL`
+2. Add `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`, `STRIPE_PRICE_ID_YEARLY`, `NEXT_PUBLIC_APP_URL`
 3. Optional: set `NEXT_PUBLIC_STRIPE_ENABLED=1`
 4. Point Stripe webhook to `/api/stripe/webhook` (subscription lifecycle)
+
+Paywall lets users pick **monthly** or **yearly** (yearly highlighted by default).
 
 Without Stripe keys, **Upgrade to Pro** unlocks a local **demo Pro** entitlement so you can test the paywall funnel.
 

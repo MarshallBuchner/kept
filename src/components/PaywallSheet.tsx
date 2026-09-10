@@ -7,7 +7,7 @@ import {
   FREE_SCANS_PER_MONTH,
   getUsage,
 } from "@/lib/billing";
-import { startProCheckout } from "@/lib/checkout";
+import { startProCheckout, type CheckoutPlan } from "@/lib/checkout";
 
 export type PaywallReason = "scan_limit" | "export_limit" | "upgrade";
 
@@ -22,6 +22,7 @@ export function PaywallSheet({
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [plan, setPlan] = useState<CheckoutPlan>("yearly");
   const usage = getUsage();
 
   useEffect(() => {
@@ -46,7 +47,7 @@ export function PaywallSheet({
   async function upgrade() {
     setBusy(true);
     setError(null);
-    const result = await startProCheckout();
+    const result = await startProCheckout(plan);
     setBusy(false);
     if (!result.ok) {
       setError(result.message ?? "Checkout failed.");
@@ -79,6 +80,23 @@ export function PaywallSheet({
           </li>
         </ul>
 
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <PlanChoice
+            title="Yearly"
+            price="CA$19.99"
+            detail="Best value · ~CA$1.67/mo"
+            selected={plan === "yearly"}
+            onSelect={() => setPlan("yearly")}
+          />
+          <PlanChoice
+            title="Monthly"
+            price="CA$2.99"
+            detail="Billed every month"
+            selected={plan === "monthly"}
+            onSelect={() => setPlan("monthly")}
+          />
+        </div>
+
         <p className="mt-4 text-[13px] text-muted">
           This month on Free: {usage.scans}/{FREE_SCANS_PER_MONTH} scans · {usage.exports}/
           {FREE_EXPORTS_PER_MONTH} exports
@@ -92,7 +110,11 @@ export function PaywallSheet({
           onClick={() => void upgrade()}
           className="mt-4 w-full rounded-[16px] bg-accent px-4 py-[15px] text-[16px] font-semibold text-white disabled:opacity-60"
         >
-          {busy ? "Starting checkout…" : "Upgrade to Pro"}
+          {busy
+            ? "Starting checkout…"
+            : plan === "yearly"
+              ? "Upgrade · CA$19.99/yr"
+              : "Upgrade · CA$2.99/mo"}
         </button>
         <button
           type="button"
@@ -103,5 +125,33 @@ export function PaywallSheet({
         </button>
       </div>
     </div>
+  );
+}
+
+function PlanChoice({
+  title,
+  price,
+  detail,
+  selected,
+  onSelect,
+}: {
+  title: string;
+  price: string;
+  detail: string;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`rounded-[14px] px-3 py-3 text-left ring-1 transition-colors ${
+        selected ? "bg-accent-soft ring-accent" : "bg-chip/60 ring-rule"
+      }`}
+    >
+      <p className={`text-[13px] font-semibold ${selected ? "text-accent" : "text-ink"}`}>{title}</p>
+      <p className="mt-0.5 text-[16px] font-semibold text-ink">{price}</p>
+      <p className="mt-0.5 text-[11px] leading-4 text-muted">{detail}</p>
+    </button>
   );
 }
