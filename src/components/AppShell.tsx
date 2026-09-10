@@ -15,10 +15,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const hideNav = pathname.startsWith("/d/");
 
   return (
-    <div className="mx-auto flex min-h-full w-full max-w-[430px] flex-col bg-paper">
-      <div className={`flex flex-1 flex-col ${hideNav ? "" : "pb-[76px]"}`}>{children}</div>
+    <div className="mx-auto flex min-h-full w-full max-w-[430px] flex-col bg-paper print:max-w-none">
+      <div className={`flex flex-1 flex-col ${hideNav ? "" : "pb-[76px]"} print:pb-0`}>{children}</div>
       {!hideNav ? (
-        <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-rule bg-card/95 backdrop-blur-md">
+        <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-rule bg-card/95 backdrop-blur-md print:hidden">
           <div className="mx-auto flex max-w-[430px] items-stretch justify-around px-6 pb-[max(0.4rem,env(safe-area-inset-bottom))] pt-2">
             {TABS.map((tab) => {
               const active =

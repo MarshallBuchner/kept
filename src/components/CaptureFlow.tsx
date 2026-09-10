@@ -130,7 +130,13 @@ export function CaptureFlow({
       setProcessIndex(PROCESS_STEPS.length - 1);
       window.setTimeout(() => setStep("extracted"), 450);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not process that image.");
+      const message =
+        err instanceof Error && /quota|out of space/i.test(err.message)
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "Could not process that image.";
+      setError(message);
       setStep("review");
     }
   }
@@ -476,7 +482,17 @@ export function CaptureFlow({
 
               <div className="space-y-2">
                 <MetaRow label="Category" value={CATEGORY_LABEL[doc.category]} />
-                <MetaRow label="Date" value={doc.facts.dates[0] ?? "—"} />
+                <MetaRow
+                  label="Date"
+                  value={
+                    doc.facts.dates[0] ??
+                    new Date(doc.createdAt).toLocaleDateString(undefined, {
+                      year: "numeric",
+                      month: "2-digit",
+                      day: "2-digit",
+                    })
+                  }
+                />
                 <MetaRow label="Merchant" value={doc.facts.merchant ?? doc.title} />
                 {doc.facts.totalIsEstimate ? (
                   <p className="rounded-[14px] bg-[#f4f1e4] px-4 py-3 text-[13px] text-[#6a6248]">

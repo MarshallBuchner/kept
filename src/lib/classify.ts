@@ -297,19 +297,29 @@ function isTruncatedPricePair(a: string, b: string): boolean {
   return longer.length === shorter.length + 1 && longer.slice(1) === shorter;
 }
 
-/** Merge "NAME UPC" + next-line-only price into one item line. */
+/** Merge split item lines: name+UPC / price, or Marshalls dept / SKU+price. */
 function stitchSplitItemLines(lines: string[]): string[] {
   const out: string[] = [];
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const next = lines[i + 1];
-    const hasUpc = /\b\d{8,14}\b/.test(line);
+    const hasUpc = /\b\d{8,14}\b/.test(line) || /\b\d{6,12}\b/.test(line);
     const hasPrice = /\d{1,3}\.\d{2}/.test(line) || /\b\d{1,3}[.,\s]\d{2}\s*[A-Za-z]?\s*$/.test(line);
     const nextIsPriceOnly =
       next &&
       /^(?:[A-Za-z]\s*)?\$?\s*\d{1,3}[.,]\d{2}\s*[A-Za-z]?\s*$/.test(next) &&
-      !/\b\d{8,14}\b/.test(next);
+      !/\b\d{6,14}\b/.test(next);
+    const nextIsSkuPrice =
+      next &&
+      /^\d{6,12}\s+\$?\s*\d{1,3}\.\d{2}\s*[A-Za-z]?\s*$/i.test(next);
+    const looksLikeDept = isMarshallsDeptLabel(line);
+
     if (hasUpc && !hasPrice && nextIsPriceOnly) {
+      out.push(`${line} ${next}`);
+      i += 1;
+      continue;
+    }
+    if (looksLikeDept && !hasPrice && nextIsSkuPrice) {
       out.push(`${line} ${next}`);
       i += 1;
       continue;
@@ -319,8 +329,26 @@ function stitchSplitItemLines(lines: string[]): string[] {
   return out;
 }
 
-/** Walmart: NAME UPC PRICE X ; Target-ish: ID NAME FC $PRICE */
+function isMarshallsDeptLabel(line: string): boolean {
+  return (
+    /^\d{1,2}-[A-Z(]/i.test(line) ||
+    /^[)O]\d-[A-Z(]/i.test(line) ||
+    /^[)O]\d[A-Z(]/i.test(line)
+  );
+}
+
+/** Walmart: NAME UPC PRICE X ; Marshalls: NN-DEPT SKU PRICE T ; Target-ish */
 function parseStructuredItem(line: string): { name: string; price: string } | undefined {
+  // Marshalls / TJX: "14-JR DRS/SWTR/JK 115416624 19.99 T" (SKU often 6–12 digits)
+  const marshalls = line.match(
+    /^([0-9)O]{1,2}-[A-Z0-9 /&'().\-]{2,}?)\s+(\d{6,12})\s+\$?\s*(\d{1,3}\.\d{2})\s*[A-Za-z]?\s*$/i,
+  );
+  if (marshalls) {
+    const name = cleanItemName(marshalls[1]);
+    const price = Number(marshalls[3]).toFixed(2);
+    if (name && isPlausibleItemPrice(price)) return { name, price };
+  }
+
   // Optional tax flag letter (F/T/N/X/O) between UPC and price — common on Walmart food lines.
   // Also tolerate a colon/bang stuck to the UPC ("…014718: 3.98 X").
   const walmart =
@@ -368,6 +396,9 @@ function parseStructuredItem(line: string): { name: string; price: string } | un
 function cleanItemName(raw: string): string | undefined {
   let name = raw
     .replace(/[¤£¢©><|%#§]/g, " ")
+    // OCR often turns leading 0 into ")" on Marshalls dept codes: ")5-KNITWEAR"
+    .replace(/^\)(\d)/, "0$1")
+    .replace(/^O(\d)-/i, "0$1-")
     .replace(/\b\d{6,14}\b/g, " ")
     .replace(/\s+/g, " ")
     .trim();
@@ -383,12 +414,15 @@ function cleanItemName(raw: string): string | undefined {
   }
   name = name
     .replace(/\s+/g, " ")
-    .replace(/\s*[.:;,]+$/g, "")
+    .replace(/\s*[.:;,$]+$/g, "")
     .replace(/^[.:;,\s]+/g, "")
     .replace(/\s+[A-Za-z]$/, "")
+    .replace(/\(\s*$/g, "")
     .trim();
+  // Soft-close truncated Marshalls dept names: "05-Knitwear (Casu" → "05-Knitwear (Casu)"
+  if (/\([A-Za-z][^)]*$/.test(name)) name = `${name})`;
   if (!isPlausibleItemName(name)) return undefined;
-  return name.slice(0, 36);
+  return name.slice(0, 40);
 }
 
 function priceFromLine(line: string): string | undefined {
@@ -422,18 +456,23 @@ function itemNameFromLine(line: string): string | undefined {
       .replace(/\b[A-Za-z]+[0-9]+\b/g, " ")
       .replace(/\b[FTOXN]\d{3}\b/gi, " ")
       .replace(/\bi[l1]\d{2}[xX]\b/g, " ")
-      .replace(/(\d{1,3}[.,:]\d{1,2})\s*%?\s*[A-Za-z↓]?\s*$/g, " "),
+      .replace(/(\d{1,3}[.,:]\d{1,2})\s*%?\s*[A-Za-z↓]?\s*$/g, " ")
+      .replace(/\$/g, " "),
   );
 }
 
 function isPlausibleItemName(name: string): boolean {
   const letters = (name.match(/[A-Za-z]/g) ?? []).length;
   const digits = (name.match(/\d/g) ?? []).length;
-  if (letters < 5) return false;
+  if (letters < 4) return false;
   if (digits > letters) return false;
   if (/[%#]/.test(name)) return false;
   if (/low\s*prices|you\s*can\s*trust|every\s*day|customer\s*copy|save\s*money|live\s*better/i.test(name)) {
     return false;
+  }
+  // Marshalls / TJX department codes: "14-JR DRS/SWTR/JK", "30-Dresses", ")5-Knitwear"
+  if (/^(?:\d{1,2}|[)O]\d)-[A-Za-z(]/i.test(name) && letters >= 4) {
+    return true;
   }
   const tokens = name.split(/\s+/);
   const junk = tokens.filter((token) => /[A-Za-z]/.test(token) && /\d/.test(token)).length;
@@ -444,7 +483,8 @@ function isPlausibleItemName(name: string): boolean {
     .filter((t) => /[A-Za-z]{3,}/.test(t));
   if (words.length < 1) return false;
   if (/^\d/.test(name) && words.length < 2) {
-    return /^[A-Za-z]{4,}$/.test(words[0] ?? "");
+    const core = (words[0] ?? "").replace(/[^A-Za-z]/g, "");
+    return core.length >= 4;
   }
   return true;
 }
