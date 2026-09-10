@@ -96,6 +96,12 @@ export function DocumentScreen({ id }: { id: string }) {
   }
 
   function runExport(mode: PrintMode) {
+    // Re-check at print time — sheet open alone must not bypass the free limit.
+    if (!canExport()) {
+      setExportOpen(false);
+      setPaywall("export_limit");
+      return;
+    }
     setExportOpen(false);
     recordExport();
     track("export_clicked", { surface: "document", mode });
@@ -347,7 +353,10 @@ export function DocumentScreen({ id }: { id: string }) {
       {paywall ? (
         <PaywallSheet
           reason={paywall}
-          onClose={() => setPaywall(null)}
+          onClose={() => {
+            setPaywall(null);
+            setExportOpen(false);
+          }}
           onUnlocked={() => {
             setPaywall(null);
             setExportOpen(true);
