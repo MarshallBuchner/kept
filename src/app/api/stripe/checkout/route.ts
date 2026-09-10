@@ -15,8 +15,14 @@ export async function POST() {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
   if (!stripe || !priceId) {
-    // Local / preview without secrets: client unlocks demo Pro.
-    return NextResponse.json({ demo: true });
+    // Opt-in only — never silently grant Pro on production/preview.
+    if (process.env.ALLOW_DEMO_PRO === "1") {
+      return NextResponse.json({ demo: true });
+    }
+    return NextResponse.json(
+      { error: "Checkout isn’t set up yet. Add Stripe keys, or set ALLOW_DEMO_PRO=1 for local testing." },
+      { status: 503 },
+    );
   }
 
   try {
