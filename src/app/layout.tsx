@@ -10,7 +10,7 @@ const keptSans = Inter({
 
 export const metadata: Metadata = {
   title: "Kept — Scan it. Clean it. Keep it.",
-  description: "Turn everyday paper into a cleaner, simpler life.",
+  description: "Turn messy receipts and documents into clean, organized files in seconds.",
 };
 
 export const viewport: Viewport = {

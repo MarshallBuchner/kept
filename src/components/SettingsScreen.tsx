@@ -1,18 +1,57 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { PaywallSheet } from "@/components/PaywallSheet";
 import { LogoMark } from "@/components/Logo";
 import { feedbackSummary } from "@/lib/feedback";
+import {
+  FREE_EXPORTS_PER_MONTH,
+  FREE_SCANS_PER_MONTH,
+  clearPro,
+  getPro,
+  getUsage,
+  isPro,
+  planLabel,
+} from "@/lib/billing";
+import { confirmCheckoutSession } from "@/lib/checkout";
 import { loadDocs, saveDocs } from "@/lib/storage";
 
 export function SettingsScreen() {
+  const searchParams = useSearchParams();
   const [count, setCount] = useState(0);
   const [feedback, setFeedback] = useState({ total: 0, confirmed: 0, needsFix: 0 });
+  const [usage, setUsage] = useState(getUsage());
+  const [pro, setProState] = useState(getPro());
+  const [paywallOpen, setPaywallOpen] = useState(false);
+  const [checkoutNote, setCheckoutNote] = useState<string | null>(null);
+
+  function refreshBilling() {
+    setUsage(getUsage());
+    setProState(getPro());
+  }
 
   useEffect(() => {
     setCount(loadDocs().length);
     setFeedback(feedbackSummary());
+    refreshBilling();
   }, []);
+
+  useEffect(() => {
+    const checkout = searchParams.get("checkout");
+    const sessionId = searchParams.get("session_id");
+    if (checkout === "cancel") {
+      setCheckoutNote("Checkout canceled — you can upgrade anytime.");
+      return;
+    }
+    if (checkout === "success" && sessionId) {
+      void (async () => {
+        const ok = await confirmCheckoutSession(sessionId);
+        refreshBilling();
+        setCheckoutNote(ok ? "Welcome to Kept Pro — unlimited scans & exports." : "Could not confirm payment yet. Refresh in a moment.");
+      })();
+    }
+  }, [searchParams]);
 
   function clearArchive() {
     if (!window.confirm("Delete every kept document on this device?")) return;
@@ -25,6 +64,46 @@ export function SettingsScreen() {
       <header>
         <h1 className="text-center text-[20px] font-semibold">Settings</h1>
       </header>
+
+      {checkoutNote ? (
+        <p className="rounded-[14px] bg-accent-soft px-4 py-3 text-[13px] text-accent-strong">{checkoutNote}</p>
+      ) : null}
+
+      <section className="rounded-[18px] bg-card p-5 ring-1 ring-rule">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-accent">Plan</p>
+            <h2 className="mt-1 text-[18px] font-semibold">{planLabel()}</h2>
+            <p className="mt-1 text-[13px] text-muted">
+              {isPro()
+                ? "Unlimited scans and PDF exports on this device."
+                : `${usage.scans}/${FREE_SCANS_PER_MONTH} scans · ${usage.exports}/${FREE_EXPORTS_PER_MONTH} exports this month`}
+            </p>
+          </div>
+          {!isPro() ? (
+            <button
+              type="button"
+              onClick={() => setPaywallOpen(true)}
+              className="shrink-0 rounded-full bg-accent px-3 py-2 text-[13px] font-semibold text-white"
+            >
+              Upgrade
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm("Remove Pro on this device? (Testing only)")) {
+                  clearPro();
+                  refreshBilling();
+                }
+              }}
+              className="shrink-0 rounded-full bg-chip px-3 py-2 text-[12px] font-medium text-muted"
+            >
+              {pro.source === "demo" ? "Clear demo Pro" : "Pro"}
+            </button>
+          )}
+        </div>
+      </section>
 
       <section className="rounded-[18px] bg-card p-5 ring-1 ring-rule">
         <div className="flex items-center gap-3">
@@ -75,17 +154,8 @@ export function SettingsScreen() {
         <h2 className="text-[15px] font-semibold">Privacy</h2>
         <p className="mt-2 text-[14px] leading-6 text-muted">
           Your information stays private. Photos and extracted text are processed on this device.
+          Billing events stay on-device unless you connect analytics.
         </p>
-      </section>
-
-      <section className="rounded-[18px] bg-card p-5 ring-1 ring-rule">
-        <h2 className="text-[15px] font-semibold">Coming later</h2>
-        <ul className="mt-3 space-y-2 text-[14px] text-muted">
-          <li className="flex gap-2"><span className="text-accent">✓</span> Smart naming (AI)</li>
-          <li className="flex gap-2"><span className="text-accent">✓</span> Searchable archive (OCR)</li>
-          <li className="flex gap-2"><span className="text-accent">○</span> Expense fields & reporting</li>
-          <li className="flex gap-2"><span className="text-accent">○</span> Batch scans</li>
-        </ul>
       </section>
 
       <button
@@ -95,6 +165,21 @@ export function SettingsScreen() {
       >
         Clear local archive
       </button>
+
+      {paywallOpen ? (
+        <PaywallSheet
+          reason="upgrade"
+          onClose={() => {
+            setPaywallOpen(false);
+            refreshBilling();
+          }}
+          onUnlocked={() => {
+            setPaywallOpen(false);
+            refreshBilling();
+            setCheckoutNote("Kept Pro unlocked on this device.");
+          }}
+        />
+      ) : null}
     </div>
   );
 }

@@ -32,6 +32,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+# also allow committed template without leading dot
+!env.example
 
 # vercel
 .vercel
