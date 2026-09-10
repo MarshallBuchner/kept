@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CropEditor } from "@/components/CropEditor";
+import { PaywallSheet, type PaywallReason } from "@/components/PaywallSheet";
 import {
   IconBack,
   IconCamera,
@@ -17,6 +18,8 @@ import {
   IconReceipt,
   IconRotate,
 } from "@/components/Icons";
+import { track } from "@/lib/analytics";
+import { canScan, recordScan } from "@/lib/billing";
 import { blobPreviewUrl, cropBlob, enhanceBlob, FULL_CROP, rotateBlob, type CropRect } from "@/lib/image";
 import { logFeedback } from "@/lib/feedback";
 import { processImage } from "@/lib/process";
@@ -71,6 +74,7 @@ export function CaptureFlow({
   const [fixMerchant, setFixMerchant] = useState("");
   const [fixDate, setFixDate] = useState("");
   const [fixTotal, setFixTotal] = useState("");
+  const [paywall, setPaywall] = useState<PaywallReason | null>(null);
 
   useEffect(() => {
     return () => {
@@ -95,6 +99,7 @@ export function CaptureFlow({
   }, [doc, step]);
 
   function setFile(file: File | Blob) {
+    track("scan_started", { source: mode });
     if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
     setBlob(file);
     setPreview(blobPreviewUrl(file));
@@ -109,7 +114,11 @@ export function CaptureFlow({
     setBusyTool(true);
     try {
       const next = kind === "rotate" ? await rotateBlob(blob, 90) : await enhanceBlob(blob);
-      setFile(next);
+      if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
+      setBlob(next);
+      setPreview(blobPreviewUrl(next));
+      setCrop(FULL_CROP);
+      setTool("crop");
     } catch {
       setError("Could not edit that image.");
     } finally {
@@ -119,12 +128,22 @@ export function CaptureFlow({
 
   async function continueProcess() {
     if (!blob) return;
+    if (!canScan()) {
+      setPaywall("scan_limit");
+      return;
+    }
     setStep("processing");
     setProgress(0);
     setProcessIndex(0);
     try {
       const cropped = await cropBlob(blob, crop);
       const next = await processImage(cropped, setProgress, category);
+recordScan();
+      track("scan_completed", {
+        category: next.category,
+        hasTotal: Boolean(next.facts.total),
+        itemCount: next.facts.items?.length ?? 0,
+      });
       // Don't persist until Looks right / Save fixes — avoids re-extract wiping edits.
       setDoc(next);
       setProcessIndex(PROCESS_STEPS.length - 1);
@@ -580,6 +599,14 @@ export function CaptureFlow({
           </>
         ) : null}
       </div>
+
+      {paywall ? (
+        <PaywallSheet
+          reason={paywall}
+          onClose={() => setPaywall(null)}
+          onUnlocked={() => setPaywall(null)}
+        />
+      ) : null}
     </div>
   );
 }

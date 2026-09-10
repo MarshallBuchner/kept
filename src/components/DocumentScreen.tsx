@@ -11,6 +11,9 @@ import {
   IconMore,
   IconShare,
 } from "@/components/Icons";
+import { PaywallSheet, type PaywallReason } from "@/components/PaywallSheet";
+import { track } from "@/lib/analytics";
+import { canExport, recordExport } from "@/lib/billing";
 import { encodeShare } from "@/lib/share";
 import { deleteDoc, getDoc, updateDoc } from "@/lib/storage";
 import { CATEGORY_LABEL, DOC_TAGS, type DocTag, type KeptDoc } from "@/lib/types";
@@ -24,6 +27,7 @@ export function DocumentScreen({ id }: { id: string }) {
   const [notes, setNotes] = useState("");
   const [exportOpen, setExportOpen] = useState(false);
   const [printMode, setPrintMode] = useState<PrintMode | null>(null);
+  const [paywall, setPaywall] = useState<PaywallReason | null>(null);
 
   useEffect(() => {
     const found = getDoc(id);
@@ -82,8 +86,19 @@ export function DocumentScreen({ id }: { id: string }) {
     window.setTimeout(() => setCopied(false), 1400);
   }
 
+  function requestExport() {
+    track("export_clicked", { surface: "document" });
+    if (!canExport()) {
+      setPaywall("export_limit");
+      return;
+    }
+    setExportOpen(true);
+  }
+
   function runExport(mode: PrintMode) {
     setExportOpen(false);
+    recordExport();
+    track("export_clicked", { surface: "document", mode });
     setPrintMode(mode);
     window.setTimeout(() => {
       window.print();
@@ -156,7 +171,7 @@ export function DocumentScreen({ id }: { id: string }) {
             icon={<IconCopy />}
             onClick={() => void copyText()}
           />
-          <ActionRound label="Export PDF" icon={<IconFile />} onClick={() => setExportOpen(true)} />
+          <ActionRound label="Export PDF" icon={<IconFile />} onClick={requestExport} />
           <ActionRound label="Share" icon={<IconShare />} onClick={() => void shareDoc()} />
         </section>
 
@@ -327,6 +342,17 @@ export function DocumentScreen({ id }: { id: string }) {
             <p className="mt-6 text-[14px] text-muted">No receipt photo available.</p>
           )}
         </article>
+      ) : null}
+
+      {paywall ? (
+        <PaywallSheet
+          reason={paywall}
+          onClose={() => setPaywall(null)}
+          onUnlocked={() => {
+            setPaywall(null);
+            setExportOpen(true);
+          }}
+        />
       ) : null}
     </>
   );
