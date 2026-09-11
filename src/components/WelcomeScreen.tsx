@@ -36,7 +36,7 @@ export function WelcomeScreen() {
           <Link href="/privacy" className="text-accent">
             Privacy
           </Link>
-          <span className="mx-2 text-line">·</span>
+          <span className="mx-2 text-muted">·</span>
           <Link href="/terms" className="text-accent">
             Terms
           </Link>
