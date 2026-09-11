@@ -33,7 +33,9 @@ Ads Manager → **Traffic** → destination **`https://keptapp.ca/welcome`** (or
 
 ## 4. Stripe
 
-Dashboard → Public details / Branding: rename Checkout off CRYPTO/NFT text. Contact `keptscan@gmail.com`.
+Hosted Checkout **header** already forces **Kept** via `branding_settings.display_name` (soft-launch safe even if Dashboard still has leftover CRYPTO/NFT text).
+
+Still do once in Dashboard → Settings → **Public details / Branding**: rename account business name to **Kept** (affects receipts, statements, terms). Contact `keptscan@gmail.com`.
 
 ## Env (Vercel Production)
 
@@ -50,3 +52,4 @@ Dashboard → Public details / Branding: rename Checkout off CRYPTO/NFT text. Co
 | Pixel | Test Events show `CompleteRegistration` |
 | Soft post | Live on Kept TikTok (or personal) |
 | Tiny ad | Ads Manager delivering to `/welcome` |
+| Stripe account name | Dashboard Public details = Kept (Checkout header already forced in app) |

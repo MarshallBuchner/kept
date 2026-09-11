@@ -65,6 +65,12 @@ export async function POST(request: Request) {
       success_url: `${appUrl}/settings?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/settings?checkout=cancel`,
       allow_promotion_codes: true,
+      // Override leftover Dashboard business name (e.g. CRYPTO/NFT) on hosted Checkout header.
+      // Account Settings → Public details still needed for receipts / statements.
+      branding_settings: {
+        display_name: "Kept",
+        button_color: "#516a57",
+      },
       metadata: { product: "kept_pro", plan },
     });
 
