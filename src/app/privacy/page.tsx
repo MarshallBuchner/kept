@@ -35,6 +35,16 @@ export default function PrivacyPage() {
         </section>
 
         <section>
+          <h2 className="text-[16px] font-semibold">Free-tier limits</h2>
+          <p className="mt-2 text-muted">
+            Free scan/export counts are stored on your device and, when our billing backend is
+            configured, also synced as anonymous usage meters (hashed network/device signal + month)
+            so clearing the home-screen app cannot reset the monthly free allowance. We do not use
+            that meter to identify you personally or to store receipt contents.
+          </p>
+        </section>
+
+        <section>
           <h2 className="text-[16px] font-semibold">Analytics</h2>
           <p className="mt-2 text-muted">
             On our hosted site we may use Vercel Analytics / Speed Insights for traffic and

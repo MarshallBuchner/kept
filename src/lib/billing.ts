@@ -1,7 +1,8 @@
-/** Free monthly allowances for monetizable beta. */
-export const FREE_SCANS_PER_MONTH = 5;
-export const FREE_EXPORTS_PER_MONTH = 1;
+import { FREE_EXPORTS_PER_MONTH, FREE_SCANS_PER_MONTH } from "@/lib/billing-limits";
 
+export { FREE_EXPORTS_PER_MONTH, FREE_SCANS_PER_MONTH };
+
+/** Free monthly allowances for monetizable beta. */
 const USAGE_KEY = "kept:usage:v1";
 const PRO_KEY = "kept:pro:v1";
 
@@ -47,6 +48,43 @@ export function getUsage(): UsageSnapshot {
 
 function saveUsage(usage: UsageSnapshot) {
   localStorage.setItem(USAGE_KEY, JSON.stringify(usage));
+}
+
+/** Prefer the higher of local + remote so reinstall can't under-report. */
+export function mergeUsage(local: UsageSnapshot, remote: UsageSnapshot | null | undefined): UsageSnapshot {
+  if (!remote || remote.month !== currentMonth()) return local.month === currentMonth() ? local : emptyUsage();
+  if (local.month !== currentMonth()) {
+    return {
+      month: remote.month,
+      scans: remote.scans,
+      exports: remote.exports,
+    };
+  }
+  return {
+    month: currentMonth(),
+    scans: Math.max(local.scans, remote.scans),
+    exports: Math.max(local.exports, remote.exports),
+  };
+}
+
+export function applyRemoteUsage(remote: UsageSnapshot) {
+  const merged = mergeUsage(getUsage(), remote);
+  saveUsage(merged);
+  return merged;
+}
+
+export async function refreshUsageFromServer(): Promise<UsageSnapshot> {
+  const local = getUsage();
+  if (isPro()) return local;
+  try {
+    const res = await fetch("/api/usage", { method: "GET", cache: "no-store" });
+    if (!res.ok) return local;
+    const data = (await res.json()) as { usage?: UsageSnapshot; remote?: boolean };
+    if (!data.usage) return local;
+    return applyRemoteUsage(data.usage);
+  } catch {
+    return local;
+  }
 }
 
 export function getPro(): ProEntitlement {
@@ -121,6 +159,64 @@ export function recordExport(): UsageSnapshot {
   usage.exports += 1;
   saveUsage(usage);
   return usage;
+}
+
+/** Gate + meter a scan with server when Stripe metering is available. */
+export async function consumeScan(): Promise<{ allowed: boolean; usage: UsageSnapshot }> {
+  if (isPro()) return { allowed: true, usage: getUsage() };
+  await refreshUsageFromServer();
+  if (!canScan()) return { allowed: false, usage: getUsage() };
+
+  try {
+    const res = await fetch("/api/usage", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "scan" }),
+    });
+    if (res.ok) {
+      const data = (await res.json()) as {
+        allowed?: boolean;
+        usage?: UsageSnapshot;
+        remote?: boolean;
+      };
+      if (data.usage) applyRemoteUsage(data.usage);
+      if (data.allowed === false) return { allowed: false, usage: getUsage() };
+      if (data.remote) return { allowed: true, usage: getUsage() };
+    }
+  } catch {
+    /* offline — fall through to local */
+  }
+
+  return { allowed: true, usage: recordScan() };
+}
+
+/** Gate + meter a PDF export with server when Stripe metering is available. */
+export async function consumeExport(): Promise<{ allowed: boolean; usage: UsageSnapshot }> {
+  if (isPro()) return { allowed: true, usage: getUsage() };
+  await refreshUsageFromServer();
+  if (!canExport()) return { allowed: false, usage: getUsage() };
+
+  try {
+    const res = await fetch("/api/usage", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "export" }),
+    });
+    if (res.ok) {
+      const data = (await res.json()) as {
+        allowed?: boolean;
+        usage?: UsageSnapshot;
+        remote?: boolean;
+      };
+      if (data.usage) applyRemoteUsage(data.usage);
+      if (data.allowed === false) return { allowed: false, usage: getUsage() };
+      if (data.remote) return { allowed: true, usage: getUsage() };
+    }
+  } catch {
+    /* offline — fall through to local */
+  }
+
+  return { allowed: true, usage: recordExport() };
 }
 
 export function planLabel(): "Kept Pro" | "Free" {

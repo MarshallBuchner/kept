@@ -13,7 +13,7 @@ import {
 } from "@/components/Icons";
 import { PaywallSheet, type PaywallReason } from "@/components/PaywallSheet";
 import { track } from "@/lib/analytics";
-import { canExport, recordExport } from "@/lib/billing";
+import { canExport, consumeExport, refreshUsageFromServer } from "@/lib/billing";
 import { encodeShare } from "@/lib/share";
 import { deleteDoc, getDoc, updateDoc } from "@/lib/storage";
 import { CATEGORY_LABEL, DOC_TAGS, type DocTag, type KeptDoc } from "@/lib/types";
@@ -88,27 +88,32 @@ export function DocumentScreen({ id }: { id: string }) {
 
   function requestExport() {
     track("export_clicked", { surface: "document" });
-    if (!canExport()) {
-      setPaywall("export_limit");
-      return;
-    }
-    setExportOpen(true);
+    void (async () => {
+      await refreshUsageFromServer();
+      if (!canExport()) {
+        setPaywall("export_limit");
+        return;
+      }
+      setExportOpen(true);
+    })();
   }
 
   function runExport(mode: PrintMode) {
-    // Re-check at print time — sheet open alone must not bypass the free limit.
-    if (!canExport()) {
+    void (async () => {
+      // Re-check + meter at print time — sheet open alone must not consume the free export.
+      const gate = await consumeExport();
+      if (!gate.allowed) {
+        setExportOpen(false);
+        setPaywall("export_limit");
+        return;
+      }
       setExportOpen(false);
-      setPaywall("export_limit");
-      return;
-    }
-    setExportOpen(false);
-    recordExport();
-    track("export_clicked", { surface: "document", mode });
-    setPrintMode(mode);
-    window.setTimeout(() => {
-      window.print();
-    }, 50);
+      track("export_clicked", { surface: "document", mode });
+      setPrintMode(mode);
+      window.setTimeout(() => {
+        window.print();
+      }, 50);
+    })();
   }
 
   function toggleTag(tag: DocTag) {
