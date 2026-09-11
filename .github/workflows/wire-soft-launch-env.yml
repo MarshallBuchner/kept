@@ -1,0 +1,65 @@
+name: Wire soft-launch env
+
+# Marshall: Actions → Wire soft-launch env → Run workflow
+# Requires repo secret VERCEL_TOKEN (Account Settings → Tokens).
+# Optional secret: VERCEL_TEAM_ID (team powr4).
+
+on:
+  workflow_dispatch:
+    inputs:
+      pixel_id:
+        description: "TikTok Pixel ID → NEXT_PUBLIC_TIKTOK_PIXEL_ID (leave blank to skip)"
+        required: false
+        type: string
+      app_url:
+        description: "Public origin → NEXT_PUBLIC_APP_URL (e.g. https://keptapp.ca)"
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  wire:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Require Vercel token
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "Add repo secret VERCEL_TOKEN (Vercel → Account Settings → Tokens), then re-run." >&2
+            exit 1
+          fi
+
+      - name: Wire Production env + redeploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+          PIXEL_ID: ${{ inputs.pixel_id }}
+          APP_URL: ${{ inputs.app_url }}
+        run: |
+          if [ -z "${PIXEL_ID}" ] && [ -z "${APP_URL}" ]; then
+            echo "Provide pixel_id and/or app_url inputs." >&2
+            exit 1
+          fi
+          chmod +x ./scripts/wire-soft-launch-env.sh
+          ./scripts/wire-soft-launch-env.sh
+
+      - name: Verify production (best-effort)
+        env:
+          PIXEL_ID: ${{ inputs.pixel_id }}
+          APP_URL: ${{ inputs.app_url }}
+        run: |
+          base="${APP_URL:-https://kept-eosin.vercel.app}"
+          echo "Waiting briefly for deploy…"
+          sleep 45
+          if [ -n "${PIXEL_ID}" ]; then
+            PIXEL_ID="$PIXEL_ID" ./scripts/verify-soft-launch.sh "$base" || true
+          else
+            ./scripts/verify-soft-launch.sh "$base" || true
+          fi

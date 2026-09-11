@@ -35,6 +35,8 @@ export PIXEL_ID=YOUR_PIXEL_ID
 ./scripts/wire-soft-launch-env.sh
 ```
 
+Or from GitHub: add repo secret `VERCEL_TOKEN` → **Actions → Wire soft-launch env → Run workflow** with `pixel_id` filled in.
+
 ## Smoke-test (Events Manager → Test Events)
 
 On the live origin (`https://keptapp.ca` or `https://kept-eosin.vercel.app`):
