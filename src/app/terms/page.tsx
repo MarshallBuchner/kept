@@ -27,9 +27,10 @@ export default function TermsPage() {
         <section>
           <h2 className="text-[16px] font-semibold">Free and Pro</h2>
           <p className="mt-2 text-muted">
-            Free use includes limited scans and PDF exports per month on a device. Kept Pro unlocks
-            higher limits via a Stripe subscription (shown in CAD on checkout). Limits are enforced
-            on-device today and may be refined as accounts launch.
+            Free use includes limited scans and PDF exports per month. Kept Pro unlocks higher limits
+            via a Stripe subscription (shown in CAD on checkout). When online, free limits are also
+            metered on our servers (device/network fingerprint) so deleting and re-adding the home-screen
+            app does not reset them. Offline use still meters on-device until the next sync.
           </p>
         </section>
 

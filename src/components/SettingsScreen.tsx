@@ -14,6 +14,7 @@ import {
   getUsage,
   isPro,
   planLabel,
+  refreshUsageFromServer,
 } from "@/lib/billing";
 import { confirmCheckoutSession } from "@/lib/checkout";
 import { loadDocs, saveDocs } from "@/lib/storage";
@@ -36,6 +37,7 @@ export function SettingsScreen() {
     setCount(loadDocs().length);
     setFeedback(feedbackSummary());
     refreshBilling();
+    void refreshUsageFromServer().then(() => refreshBilling());
   }, []);
 
   useEffect(() => {
@@ -80,6 +82,11 @@ export function SettingsScreen() {
                 ? "Unlimited scans and PDF exports on this device."
                 : `${usage.scans}/${FREE_SCANS_PER_MONTH} scans · ${usage.exports}/${FREE_EXPORTS_PER_MONTH} exports this month`}
             </p>
+            {!isPro() ? (
+              <p className="mt-2 text-[12px] text-muted">
+                Free limits sync online so clearing the home-screen app doesn&apos;t reset them.
+              </p>
+            ) : null}
           </div>
           {!isPro() ? (
             <button

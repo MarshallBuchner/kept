@@ -19,7 +19,7 @@ import {
   IconRotate,
 } from "@/components/Icons";
 import { track } from "@/lib/analytics";
-import { canScan, recordScan } from "@/lib/billing";
+import { canScan, consumeScan, refreshUsageFromServer } from "@/lib/billing";
 import { blobPreviewUrl, cropBlob, enhanceBlob, FULL_CROP, rotateBlob, type CropRect } from "@/lib/image";
 import { logFeedback } from "@/lib/feedback";
 import { processImage } from "@/lib/process";
@@ -128,6 +128,7 @@ export function CaptureFlow({
 
   async function continueProcess() {
     if (!blob) return;
+    await refreshUsageFromServer();
     if (!canScan()) {
       setPaywall("scan_limit");
       return;
@@ -138,7 +139,12 @@ export function CaptureFlow({
     try {
       const cropped = await cropBlob(blob, crop);
       const next = await processImage(cropped, setProgress, category);
-recordScan();
+      const gate = await consumeScan();
+      if (!gate.allowed) {
+        setPaywall("scan_limit");
+        setStep("review");
+        return;
+      }
       track("scan_completed", {
         category: next.category,
         hasTotal: Boolean(next.facts.total),
