@@ -28,8 +28,21 @@ export default function TermsPage() {
           <h2 className="text-[16px] font-semibold">Free and Pro</h2>
           <p className="mt-2 text-muted">
             Free use includes limited scans and PDF exports per month on a device. Kept Pro unlocks
-            higher limits via a Stripe subscription. Limits are enforced on-device today and may be
-            refined as accounts launch.
+            higher limits via a Stripe subscription (shown in CAD on checkout). Limits are enforced
+            on-device today and may be refined as accounts launch.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-[16px] font-semibold">Billing and cancellation</h2>
+          <p className="mt-2 text-muted">
+            Kept Pro is billed through Stripe on the plan you choose (monthly or yearly). You can
+            cancel anytime in the Stripe customer portal or by emailing{" "}
+            <a className="text-accent underline" href="mailto:keptscan@gmail.com">
+              keptscan@gmail.com
+            </a>
+            ; access continues through the end of the paid period. For refund questions during beta,
+            contact that address — we review case by case.
           </p>
         </section>
 

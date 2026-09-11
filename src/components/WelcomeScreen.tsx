@@ -44,6 +44,13 @@ export function WelcomeScreen() {
           <Link href="/terms" className="text-white underline-offset-2 hover:underline">
             Terms
           </Link>
+          <span className="mx-2 text-white/40">·</span>
+          <a
+            href="mailto:keptscan@gmail.com"
+            className="text-white underline-offset-2 hover:underline"
+          >
+            Contact
+          </a>
         </p>
       </div>
     </main>
