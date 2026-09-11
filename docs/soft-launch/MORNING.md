@@ -30,7 +30,7 @@ PIXEL_ID=YOUR_ID ./scripts/verify-soft-launch.sh https://kept-eosin.vercel.app
 
 ## 2. Soft post + tiny ad (~20 min) → [ADS.md](./ADS.md)
 
-Upload: `creative/tiktok-green-live-demo-9x16.mp4`  
+Upload: `creative/tiktok-paper-live-demo-9x16.mp4`  
 
 **Caption (use until DNS):**  
 `Messy receipts → clean files in seconds. Kept — Scan it. Clean it. Keep it. https://kept-eosin.vercel.app/welcome`
