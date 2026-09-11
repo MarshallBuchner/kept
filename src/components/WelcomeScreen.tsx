@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BrandWord, LogoMark } from "@/components/Logo";
 import { setOnboarded } from "@/lib/storage";
@@ -23,7 +24,7 @@ export function WelcomeScreen() {
         </p>
       </div>
 
-      <div className="flex flex-col items-center animate-fade-up" style={{ animationDelay: "80ms" }}>
+      <div className="flex flex-col items-center gap-4 animate-fade-up" style={{ animationDelay: "80ms" }}>
         <button
           type="button"
           onClick={start}
@@ -31,6 +32,15 @@ export function WelcomeScreen() {
         >
           Get Started
         </button>
+        <p className="text-[12px] text-muted">
+          <Link href="/privacy" className="text-accent">
+            Privacy
+          </Link>
+          <span className="mx-2 text-line">·</span>
+          <Link href="/terms" className="text-accent">
+            Terms
+          </Link>
+        </p>
       </div>
     </main>
   );
