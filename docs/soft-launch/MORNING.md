@@ -25,14 +25,14 @@ Unblocks measurement for the first ad.
 PIXEL_ID=YOUR_ID ./scripts/verify-soft-launch.sh https://kept-eosin.vercel.app
 ```
 
-## 2. Soft post + tiny ad (~20 min)
+## 2. Soft post + tiny ad (~20 min) → [ADS.md](./ADS.md)
 
 Upload: `creative/tiktok-green-live-demo-9x16.mp4`  
 
 **Caption (use until DNS):**  
 `Messy receipts → clean files in seconds. Kept — Scan it. Clean it. Keep it. https://kept-eosin.vercel.app/welcome`
 
-Ads Manager → **Traffic** → destination **`https://kept-eosin.vercel.app/welcome`** · Canada · CAD $5–20/day · 3–5 days · creatives from `creative/`.
+Ads Manager → **Create → Auction → Traffic** → Website → optimize **Landing Page View** → destination **`https://kept-eosin.vercel.app/welcome`** · Canada · CAD $5–20/day · 3–5 days · creatives from `creative/`. Full click path: [ADS.md](./ADS.md).
 
 After `keptapp.ca` is live: edit the ad destination + bio link to `https://keptapp.ca/welcome` (no need to rebuild creatives).
 
