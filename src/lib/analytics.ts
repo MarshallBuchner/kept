@@ -1,3 +1,5 @@
+import { attributionAsProps } from "@/lib/tiktokAttribution";
+
 export type AnalyticsEvent =
   | "onboarded"
   | "scan_started"
@@ -21,13 +23,15 @@ type QueuedEvent = {
 /**
  * Lightweight funnel analytics for monetizable beta.
  * Queues locally and forwards to window.keptAnalytics / dataLayer when present.
+ * Merges stored TikTok click-id / UTM into Pixel event props for SPA attribution.
  */
 export function track(event: AnalyticsEvent, props?: AnalyticsProps) {
   if (typeof window === "undefined") return;
 
+  const merged = stripUndefined({ ...attributionAsProps(), ...props });
   const payload: QueuedEvent = {
     event,
-    props: props ? stripUndefined(props) : undefined,
+    props: Object.keys(merged).length ? merged : undefined,
     ts: new Date().toISOString(),
   };
 
