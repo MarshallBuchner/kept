@@ -2,14 +2,11 @@
 
 **Done when:** `keptapp.ca` HTTPS works · Pixel events show in TikTok · 1 soft post live · tiny ad delivering.
 
-## 0. Merge (2 min)
+## 0. Product stack — done
 
-**Fast path (recommended):** merge https://github.com/MarshallBuchner/kept/pull/25 — already stacks #22+#23+#24+#21 with the WelcomeScreen conflict resolved.
+https://github.com/MarshallBuchner/kept/pull/25 is **merged** (green Welcome/Home, Archive folders, CompleteRegistration + `ttclid`, creatives/runbook). Production already serves `/welcome`.
 
-**Or one-by-one:** [#22](https://github.com/MarshallBuchner/kept/pull/22) → [#23](https://github.com/MarshallBuchner/kept/pull/23) → [#24](https://github.com/MarshallBuchner/kept/pull/24) → [#21](https://github.com/MarshallBuchner/kept/pull/21)  
-(#24 now includes green Welcome, so #23→#24 is clean.)
-
-Wait for production deploy before buying domain / setting Pixel.
+Optional polish: merge https://github.com/MarshallBuchner/kept/pull/26 for Vercel deep links in this checklist.
 
 **Ads URL rule:** only `https://keptapp.ca` (after DNS) or `https://kept-eosin.vercel.app` until then. Never a `*-git-*.vercel.app` preview — those are SSO-gated and will break ad clicks.
 
@@ -51,7 +48,6 @@ Dashboard → Public details / Branding: rename Checkout off CRYPTO/NFT text. Co
 
 | Gate | Evidence |
 | --- | --- |
-| Merge #25 | PR merged + production deploy |
 | Domain | `curl -I https://keptapp.ca/welcome` → 200 |
 | Pixel | Test Events show `CompleteRegistration` |
 | Soft post | Live on Kept TikTok (or personal) |
