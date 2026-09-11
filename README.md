@@ -111,14 +111,24 @@ Use production URL until DNS is live, then swap.
 
 Creative ideas: before/after receipt photo; 10–15s screen recording of scan→PDF; static Kept mark + tagline.
 
+**Ready-to-upload files:** `docs/soft-launch/creative/`  
+Prefer `tiktok-static-9x16.png` (Home UI on sage). Also square `tiktok-static-1x1.png`, brand-only `tiktok-brand-9x16.png`, plus raw Home/Welcome screenshots and OG. Index: `docs/soft-launch/README.md`.
+
 #### 5) Tiny paid TikTok test
 
 1. Ads Manager → Traffic or Website Conversions → destination = custom domain (or production until DNS).
 2. Budget: start tiny (e.g. daily CAD $5–20) — learn, don’t scale.
-3. Creative: reuse the soft-post video/static; landing must show Privacy/Terms (Welcome + Settings).
+3. Creative: upload `docs/soft-launch/creative/tiktok-static-9x16.png` or a 10–15s screen record; landing must show Privacy/Terms (Welcome + Settings).
 4. Paste-ready ad text:  
    `Tired of crumpled receipts? Scan, clean, and keep them as tidy files — on your device. Kept.`  
    CTA: **Learn more** / **Download** → your live URL.
+
+After domain + Pixel redeploy:
+
+```bash
+./scripts/verify-soft-launch.sh https://keptapp.ca
+PIXEL_ID=YOUR_ID ./scripts/verify-soft-launch.sh https://keptapp.ca
+```
 
 #### 6) Stripe public details (before spend)
 
