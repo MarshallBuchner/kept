@@ -13,23 +13,12 @@ const TABS = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const hideNav = pathname.startsWith("/d/");
-  const isHome = pathname === "/";
 
   return (
-    <div
-      className={`mx-auto flex min-h-full w-full max-w-[430px] flex-col print:max-w-none ${
-        isHome ? "bg-accent" : "bg-paper"
-      }`}
-    >
+    <div className="mx-auto flex min-h-full w-full max-w-[430px] flex-col bg-paper print:max-w-none">
       <div className={`flex flex-1 flex-col ${hideNav ? "" : "pb-[76px]"} print:pb-0`}>{children}</div>
       {!hideNav ? (
-        <nav
-          className={`fixed inset-x-0 bottom-0 z-40 print:hidden ${
-            isHome
-              ? "border-t border-white/15 bg-[#3a4d40]/92 backdrop-blur-md"
-              : "border-t border-rule bg-card/95 backdrop-blur-md"
-          }`}
-        >
+        <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-rule bg-card/95 backdrop-blur-md print:hidden">
           <div className="mx-auto flex max-w-[430px] items-stretch justify-around px-6 pb-[max(0.4rem,env(safe-area-inset-bottom))] pt-2">
             {TABS.map((tab) => {
               const active =
@@ -42,13 +31,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   key={tab.href}
                   href={tab.href}
                   className={`flex min-w-[72px] flex-col items-center gap-1 px-2 py-1 text-[11px] font-medium ${
-                    isHome
-                      ? active
-                        ? "text-white"
-                        : "text-white/55"
-                      : active
-                        ? "text-accent"
-                        : "text-muted"
+                    active ? "text-accent" : "text-muted"
                   }`}
                 >
                   <Icon size={22} />
