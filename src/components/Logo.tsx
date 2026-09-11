@@ -13,28 +13,36 @@ export function LogoMark({ size = 64 }: { size?: number }) {
       }}
       aria-hidden
     >
-      <svg
-        width={Math.round(size * 0.58)}
-        height={Math.round(size * 0.68)}
-        viewBox="0 0 58 68"
-        fill="none"
-      >
-        {/* page */}
-        <path
-          d="M8 2.5h30.5L52 16v46.5c0 1.9-1.6 3.5-3.5 3.5h-37C9.6 66 8 64.4 8 62.5V6A3.5 3.5 0 0 1 11.5 2.5"
-          fill="#f7f8f6"
-        />
-        {/* dog-ear */}
-        <path d="M38.5 2.5V13c0 1.9 1.6 3.5 3.5 3.5h10.5L38.5 2.5Z" fill="#c5d4c8" />
-        <path d="M38.5 2.5 52 16h-10c-1.9 0-3.5-1.6-3.5-3.5V2.5Z" fill="#9eb5a4" />
-        {/* cutout K — matches tile so it reads as negative space */}
-        <path
-          d="M19 18h7.2v13.2L40.2 18H48L33.4 33.6 49 52h-8.1L26.2 36.2V52H19V18Z"
-          fill="#516a57"
-          opacity="0.92"
-        />
-      </svg>
+      <KeptPageMark size={Math.round(size * 0.72)} />
     </div>
+  );
+}
+
+/** Folded page + cutout K for use on a full sage background */
+export function KeptPageMark({ size = 180 }: { size?: number }) {
+  const width = size;
+  const height = Math.round(size * (68 / 58));
+  return (
+    <svg
+      width={width}
+      height={height}
+      viewBox="0 0 58 68"
+      fill="none"
+      aria-hidden
+      className="drop-shadow-[0_18px_40px_rgba(18,20,18,0.28)]"
+    >
+      <path
+        d="M8 2.5h30.5L52 16v46.5c0 1.9-1.6 3.5-3.5 3.5h-37C9.6 66 8 64.4 8 62.5V6A3.5 3.5 0 0 1 11.5 2.5"
+        fill="#f7f8f6"
+      />
+      <path d="M38.5 2.5V13c0 1.9 1.6 3.5 3.5 3.5h10.5L38.5 2.5Z" fill="#c5d4c8" />
+      <path d="M38.5 2.5 52 16h-10c-1.9 0-3.5-1.6-3.5-3.5V2.5Z" fill="#9eb5a4" />
+      <path
+        d="M19 18h7.2v13.2L40.2 18H48L33.4 33.6 49 52h-8.1L26.2 36.2V52H19V18Z"
+        fill="#516a57"
+        opacity="0.92"
+      />
+    </svg>
   );
 }
 
