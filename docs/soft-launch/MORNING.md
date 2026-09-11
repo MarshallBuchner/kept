@@ -4,15 +4,13 @@
 
 ## 0. Product stack — done
 
-https://github.com/MarshallBuchner/kept/pull/25 is **merged** (green Welcome/Home, Archive folders, CompleteRegistration + `ttclid`, creatives/runbook). Production already serves `/welcome`.
-
-Optional polish: merge https://github.com/MarshallBuchner/kept/pull/26 for Vercel deep links in this checklist.
+https://github.com/MarshallBuchner/kept/pull/25–#27 are **merged** (green Welcome/Home, Archive folders, CompleteRegistration + `ttclid`, Get Started → `/?welcome=1`, creatives/runbook, deep links). Production already serves `/welcome`.
 
 **Ads URL rule:** only `https://keptapp.ca` (after DNS) or `https://kept-eosin.vercel.app` until then. Never a `*-git-*.vercel.app` preview — those are SSO-gated and will break ad clicks.
 
 ## 1. Domain (~15–30 min) → [DOMAIN.md](./DOMAIN.md)
 
-1. Buy **`keptapp.ca`** (still available) — [Cloudflare Registrar](https://dash.cloudflare.com/?to=/:account/domains/register) or CIRA.  
+1. Buy **`keptapp.ca`** — still **available ~USD $11.98/yr** on [Namecheap](https://www.namecheap.com/domains/registration/results/?domain=keptapp.ca) (`.ca` needs Canadian presence). Fallback: `keptscan.ca` same price.  
 2. [Vercel → kept → Domains](https://vercel.com/powr4/kept/settings/domains) → add → DNS until **Valid** + HTTPS.  
 3. [Env → Production](https://vercel.com/powr4/kept/settings/environment-variables): `NEXT_PUBLIC_APP_URL=https://keptapp.ca` → **Redeploy**.
 
