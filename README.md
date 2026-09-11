@@ -144,7 +144,8 @@ PIXEL_ID=YOUR_ID ./scripts/verify-soft-launch.sh https://keptapp.ca
 
 #### 6) Stripe public details (before spend)
 
-Stripe Dashboard → Settings → Public details / Branding: rename Checkout business name off leftover CRYPTO/NFT text. Contact stays `keptscan@gmail.com`.
+Hosted Checkout **header** already shows **Kept** (`branding_settings.display_name` in `/api/stripe/checkout`).  
+Still rename Dashboard → Settings → Public details / Branding account name to **Kept** (receipts / statements). Contact stays `keptscan@gmail.com`.
 
 #### Env checklist (Vercel Production)
 
