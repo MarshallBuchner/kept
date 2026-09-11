@@ -11,9 +11,37 @@ const keptSans = Inter({
   weight: ["400", "500", "600", "700"],
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://kept-eosin.vercel.app";
+
 export const metadata: Metadata = {
-  title: "Kept — Scan it. Clean it. Keep it.",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "Kept — Scan it. Clean it. Keep it.",
+    template: "%s · Kept",
+  },
   description: "Turn messy receipts and documents into clean, organized files in seconds.",
+  applicationName: "Kept",
+  keywords: ["receipt scanner", "PDF export", "expense receipts", "document OCR", "Kept"],
+  openGraph: {
+    type: "website",
+    locale: "en_CA",
+    url: "/",
+    siteName: "Kept",
+    title: "Kept — Scan it. Clean it. Keep it.",
+    description: "Turn messy receipts and documents into clean, organized files in seconds.",
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "Kept — Scan it. Clean it. Keep it." }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Kept — Scan it. Clean it. Keep it.",
+    description: "Turn messy receipts and documents into clean, organized files in seconds.",
+    images: ["/og.png"],
+  },
+  appleWebApp: {
+    capable: true,
+    title: "Kept",
+    statusBarStyle: "default",
+  },
   icons: {
     icon: [
       { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
