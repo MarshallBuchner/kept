@@ -4,7 +4,7 @@
 
 ## 0. Product stack — done
 
-https://github.com/MarshallBuchner/kept/pull/25–#27 are **merged** (green Welcome/Home, Archive folders, CompleteRegistration + `ttclid`, Get Started → `/?welcome=1`, creatives/runbook, deep links). Production already serves `/welcome`.
+https://github.com/MarshallBuchner/kept/pull/25–#28 are **merged** (green Welcome/Home, Archive folders, CompleteRegistration + `ttclid`, Get Started → `/?welcome=1`, creatives/runbook, deep links, Namecheap buy path). Production already serves `/welcome`.
 
 **Ads URL rule:** only `https://keptapp.ca` (after DNS) or `https://kept-eosin.vercel.app` until then. Never a `*-git-*.vercel.app` preview — those are SSO-gated and will break ad clicks.
 
@@ -20,7 +20,7 @@ https://github.com/MarshallBuchner/kept/pull/25–#27 are **merged** (green Welc
 
 ## 2. TikTok Pixel → [PIXEL.md](./PIXEL.md)
 
-1. Ads Manager (not the TikTok app) → Assets → Events → Web → Create Pixel.  
+1. Ads Manager (not the TikTok app) → **Tools → Events Manager → Connect Data Source → Web → Manual Setup** → copy Pixel ID (skip installing TikTok’s snippet — app already has it).  
 2. [Env → Production](https://vercel.com/powr4/kept/settings/environment-variables): `NEXT_PUBLIC_TIKTOK_PIXEL_ID=<id>` → **Redeploy**.  
 3. Test Events: `/welcome` Get Started → `CompleteRegistration`; paywall → `ViewContent`; checkout → `InitiateCheckout`; paid → `CompletePayment`; scan → `ClickButton`.
 
