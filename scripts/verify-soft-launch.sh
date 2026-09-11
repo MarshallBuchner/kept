@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Post-domain / post-pixel smoke checks for Kept soft launch.
+# Soft-launch smoke checks for Kept (domain + optional Pixel).
 # Usage:
 #   ./scripts/verify-soft-launch.sh
 #   ./scripts/verify-soft-launch.sh https://keptapp.ca
@@ -10,9 +10,11 @@ set -euo pipefail
 BASE="${1:-https://kept-eosin.vercel.app}"
 BASE="${BASE%/}"
 FAIL=0
+NOTES=()
 
 ok() { printf '  OK  %s\n' "$1"; }
 bad() { printf '  FAIL %s\n' "$1"; FAIL=1; }
+note() { NOTES+=("$1"); printf '  NOTE %s\n' "$1"; }
 
 echo "Soft-launch verify → $BASE"
 
@@ -26,35 +28,52 @@ for path in / /welcome /privacy /terms /og.png; do
 done
 
 html=$(curl -sL "$BASE/" || true)
+welcome=$(curl -sL "$BASE/welcome" || true)
+
 if echo "$html" | grep -qi 'Scan it. Clean it. Keep it\|Kept'; then
   ok "brand/tagline present on /"
 else
   bad "brand/tagline missing on /"
 fi
 
+if echo "$welcome" | grep -qi 'Get Started\|Privacy\|Terms'; then
+  ok "/welcome has Get Started + legal links"
+else
+  bad "/welcome missing Get Started or Privacy/Terms"
+fi
+
 if [[ -n "${PIXEL_ID:-}" ]]; then
-  if echo "$html" | grep -q "$PIXEL_ID"; then
+  if echo "$html$welcome" | grep -q "$PIXEL_ID"; then
     ok "Pixel ID $PIXEL_ID found in HTML/JS payload"
+  elif echo "$html$welcome" | grep -qi 'TikTokPixel\|analytics.tiktok.com\|TiktokAnalyticsObject\|ttq.load'; then
+    ok "TikTok pixel loader referenced (confirm ID in TikTok Test Events)"
   else
-    # Pixel may be injected via afterInteractive chunk; check for loader fingerprint
-    if echo "$html" | grep -qi 'TikTokPixel\|analytics.tiktok.com\|TiktokAnalyticsObject'; then
-      ok "TikTok pixel loader referenced (confirm ID in TikTok Test Events)"
-    else
-      bad "Pixel ID not visible yet — set NEXT_PUBLIC_TIKTOK_PIXEL_ID on Vercel Production and redeploy"
-    fi
+    bad "Pixel ID not visible — set NEXT_PUBLIC_TIKTOK_PIXEL_ID on Vercel Production and redeploy"
   fi
 else
-  if echo "$html" | grep -qi 'analytics.tiktok.com'; then
+  if echo "$html$welcome" | grep -qi 'analytics.tiktok.com\|ttq.load'; then
     ok "TikTok analytics script present"
   else
-    echo "  SKIP pixel body check (set PIXEL_ID=... to assert ID; empty env keeps pixel off)"
+    note "Pixel still off (set PIXEL_ID=... to assert; empty env keeps pixel off)"
   fi
 fi
 
-host=$(echo "$BASE" | sed -E 's#https?://##')
+host=$(echo "$BASE" | sed -E 's#https?://##; s#/.*##')
 if [[ "$host" == *vercel.app* ]]; then
-  echo "  NOTE still on vercel.app — buy/attach keptapp.ca, then re-run with that origin"
+  note "still on vercel.app — buy/attach keptapp.ca, set NEXT_PUBLIC_APP_URL, redeploy, re-run"
 fi
+
+if [[ "$host" == "keptapp.ca" || "$host" == "www.keptapp.ca" ]]; then
+  ok "checking custom domain origin"
+fi
+
+echo
+echo "Remaining Marshall gates (if any NOTE/FAIL above):"
+echo "  1. Merge https://github.com/MarshallBuchner/kept/pull/25"
+echo "  2. Buy+attach keptapp.ca → NEXT_PUBLIC_APP_URL → redeploy"
+echo "  3. Ads Manager Pixel → NEXT_PUBLIC_TIKTOK_PIXEL_ID → redeploy"
+echo "  4. Soft post + Traffic ad to /welcome (never a git-preview URL)"
+echo "  5. Rename Stripe Checkout off CRYPTO/NFT text"
 
 if [[ "$FAIL" -ne 0 ]]; then
   echo "Result: FAIL"
