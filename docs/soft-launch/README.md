@@ -6,16 +6,19 @@ Paste-ready assets for Kept TikTok soft posts + first paid test.
 
 | File | Use |
 | --- | --- |
-| `creative/tiktok-demo-slideshow.mp4` | **Preferred** 9:16 ~7s Welcome → Home → brand static (upload to TikTok / Ads) |
+| `creative/tiktok-green-live-demo-9x16.mp4` | **Preferred** 9:16 ~18s live Welcome → Get Started → green Home |
+| `creative/tiktok-demo-slideshow.mp4` | Alt 9:16 ~7s stills slideshow |
 | `creative/tiktok-static-9x16.png` | TikTok / Reels static |
 | `creative/tiktok-static-1x1.png` | Feed square |
 | `creative/tiktok-brand-9x16.png` | Brand-only fallback (no UI) |
-| `creative/home-green.png` | Raw Home screenshot (merge PR #23 first for production to match) |
-| `creative/welcome-green.png` | Raw Welcome screenshot |
+| `creative/home-green.png` / `home-green-live.png` | Home screenshots (merge PR #23 so production matches) |
+| `creative/welcome-green.png` / `welcome-green-live.png` | Welcome screenshots |
 | `creative/og-1200x630.png` | Link preview / OG |
 | `creative/kept-mark-512.png` / `kept-icon-1024.png` | Profile avatar |
 
-After DNS, re-export or crop out `kept-eosin.vercel.app` and use `keptapp.ca` in captions.
+Click paths: [`DOMAIN.md`](./DOMAIN.md) · [`PIXEL.md`](./PIXEL.md)
+
+After DNS, crop out `kept-eosin.vercel.app` and use `keptapp.ca` in captions.
 
 ## Captions
 

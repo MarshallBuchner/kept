@@ -112,7 +112,7 @@ Use production URL until DNS is live, then swap.
 Creative ideas: before/after receipt photo; 10–15s screen recording of scan→PDF; static Kept mark + tagline.
 
 **Ready-to-upload files:** `docs/soft-launch/creative/`  
-Prefer **`tiktok-demo-slideshow.mp4`** (9:16 Welcome→Home). Fallback stills: `tiktok-static-9x16.png`, square `tiktok-static-1x1.png`, brand-only `tiktok-brand-9x16.png`, plus raw screenshots + OG. Index: `docs/soft-launch/README.md`.
+Prefer **`tiktok-green-live-demo-9x16.mp4`** (live Welcome→Home). Alt: `tiktok-demo-slideshow.mp4`. Stills: `tiktok-static-9x16.png` / `1x1` / brand-only. Domain + Pixel click paths: `docs/soft-launch/DOMAIN.md`, `docs/soft-launch/PIXEL.md`.
 
 #### 5) Tiny paid TikTok test
 
@@ -122,7 +122,7 @@ Prefer **`tiktok-demo-slideshow.mp4`** (9:16 Welcome→Home). Fallback stills: `
    - Location: Canada (or your city) · Age 22–54 · Automatic placements
    - Optimization: Landing page views (Traffic) until Pixel has ≥50 events, then switch Conversions → `ViewContent` / `InitiateCheckout`
    - Bid: lowest cost / automatic
-3. Creative: upload `docs/soft-launch/creative/tiktok-demo-slideshow.mp4` (or the 9:16 static); landing must show Privacy/Terms (Welcome + Settings). Prefer `/welcome` as the click URL.
+3. Creative: upload `docs/soft-launch/creative/tiktok-green-live-demo-9x16.mp4` (or slideshow/static); landing must show Privacy/Terms (Welcome + Settings). Prefer `/welcome` as the click URL.
 4. Paste-ready ad text:  
    `Tired of crumpled receipts? Scan, clean, and keep them as tidy files — on your device. Kept.`  
    CTA: **Learn more** → your live `/welcome` URL.
