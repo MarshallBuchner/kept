@@ -18,9 +18,21 @@ function priceForPlan(plan: CheckoutPlan): string | undefined {
   return process.env.STRIPE_PRICE_ID || undefined;
 }
 
+function appBaseUrl() {
+  const configured = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (configured) return configured.replace(/\/$/, "");
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  }
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  return "https://kept-eosin.vercel.app";
+}
+
 export async function POST(request: Request) {
   const stripe = stripeClient();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const appUrl = appBaseUrl();
 
   let plan: CheckoutPlan = "monthly";
   try {
