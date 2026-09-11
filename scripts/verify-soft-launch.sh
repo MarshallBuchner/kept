@@ -36,10 +36,13 @@ else
   bad "brand/tagline missing on /"
 fi
 
-if echo "$welcome" | grep -qi 'Get Started\|Privacy\|Terms'; then
-  ok "/welcome has Get Started + legal links"
+if echo "$welcome" | grep -qi 'Get Started' \
+  && echo "$welcome" | grep -qi 'Privacy' \
+  && echo "$welcome" | grep -qi 'Terms' \
+  && echo "$welcome" | grep -qi 'mailto:keptscan@gmail.com\|Contact'; then
+  ok "/welcome has Get Started + Privacy/Terms + Contact"
 else
-  bad "/welcome missing Get Started or Privacy/Terms"
+  bad "/welcome missing Get Started, Privacy/Terms, or Contact email"
 fi
 
 if [[ -n "${PIXEL_ID:-}" ]]; then
