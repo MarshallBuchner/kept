@@ -42,6 +42,7 @@ export function track(event: AnalyticsEvent, props?: AnalyticsProps) {
   const w = window as Window & {
     keptAnalytics?: { track: (name: string, props?: AnalyticsProps) => void };
     dataLayer?: Array<Record<string, unknown>>;
+    ttq?: { track: (event: string, props?: Record<string, unknown>) => void };
   };
 
   try {
@@ -56,8 +57,32 @@ export function track(event: AnalyticsEvent, props?: AnalyticsProps) {
     /* ignore */
   }
 
+  try {
+    const tiktokEvent = toTikTokEvent(event);
+    if (tiktokEvent && w.ttq?.track) {
+      w.ttq.track(tiktokEvent, payload.props ? { ...payload.props } : undefined);
+    }
+  } catch {
+    /* ignore pixel errors */
+  }
+
   if (process.env.NODE_ENV !== "production") {
     console.info("[kept:analytics]", event, payload.props ?? {});
+  }
+}
+
+function toTikTokEvent(event: AnalyticsEvent): string | null {
+  switch (event) {
+    case "paywall_viewed":
+      return "ViewContent";
+    case "checkout_started":
+      return "InitiateCheckout";
+    case "paid":
+      return "CompletePayment";
+    case "scan_started":
+      return "ClickButton";
+    default:
+      return null;
   }
 }
 
