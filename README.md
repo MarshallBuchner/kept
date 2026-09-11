@@ -44,5 +44,16 @@ Without Stripe keys, **Upgrade to Pro** unlocks a local **demo Pro** entitlement
 
 `scan_started` → `scan_completed` → `export_clicked` → `paywall_viewed` → `checkout_started` → `paid`
 
-Events queue in `localStorage` and forward to `window.keptAnalytics` / `dataLayer` when present.
+Events queue in `localStorage` and forward to `window.keptAnalytics` / `dataLayer` / TikTok Pixel when present.
+
+### Soft-launch checklist
+
+1. **Merge** the TikTok / legal / OG PR, then use production only: `https://kept-eosin.vercel.app` (not preview URLs).
+2. **Buy a domain** (RDAP 404 = likely available): prefer **`keptapp.ca`**, else `keptscan.ca` / `keptscan.com`.
+3. **Attach in Vercel** → Domains → DNS → set `NEXT_PUBLIC_APP_URL=https://your-domain` → update Stripe Checkout success/cancel URLs to match → redeploy.
+4. **TikTok Pixel**: Events Manager → create Pixel → set `NEXT_PUBLIC_TIKTOK_PIXEL_ID` on Vercel Production → redeploy → verify `ViewContent` / `InitiateCheckout` / `CompletePayment` / `ClickButton`.
+5. **Ads**: soft post on personal socials first (before/after receipt, scan→PDF clip, logo + “Scan it. Clean it. Keep it.”), then a small TikTok test budget.
+6. **Stripe public details**: rename business name away from leftover CRYPTO/NFT text before paid ads.
+
+Pixel stays off until the env var is set — safe to merge code first.
 
