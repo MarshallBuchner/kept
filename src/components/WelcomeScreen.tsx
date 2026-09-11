@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BrandWord, LogoMark } from "@/components/Logo";
+import { track } from "@/lib/analytics";
 import { setOnboarded } from "@/lib/storage";
 
 export function WelcomeScreen() {
@@ -10,6 +11,7 @@ export function WelcomeScreen() {
 
   function start() {
     setOnboarded();
+    track("onboarded", { surface: "welcome" });
     router.replace("/");
   }
 

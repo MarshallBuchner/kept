@@ -1,4 +1,5 @@
 export type AnalyticsEvent =
+  | "onboarded"
   | "scan_started"
   | "scan_completed"
   | "export_clicked"
@@ -73,6 +74,8 @@ export function track(event: AnalyticsEvent, props?: AnalyticsProps) {
 
 function toTikTokEvent(event: AnalyticsEvent): string | null {
   switch (event) {
+    case "onboarded":
+      return "CompleteRegistration";
     case "paywall_viewed":
       return "ViewContent";
     case "checkout_started":
