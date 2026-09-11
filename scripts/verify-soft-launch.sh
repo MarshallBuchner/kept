@@ -69,9 +69,9 @@ fi
 
 echo
 echo "Remaining Marshall gates (if any NOTE/FAIL above):"
-echo "  1. Buy+attach keptapp.ca → NEXT_PUBLIC_APP_URL → redeploy"
-echo "  2. Ads Manager Pixel → NEXT_PUBLIC_TIKTOK_PIXEL_ID → redeploy"
-echo "  3. Soft post + Traffic ad to /welcome (never a git-preview URL)"
+echo "  1. Ads Manager Pixel → NEXT_PUBLIC_TIKTOK_PIXEL_ID → redeploy"
+echo "  2. Soft post + Traffic ad to /welcome (never a git-preview URL)"
+echo "  3. Buy+attach keptapp.ca → NEXT_PUBLIC_APP_URL → redeploy (parallel OK)"
 echo "  4. Stripe Dashboard Public details → Kept (Checkout header already forced in app)"
 
 if [[ "$FAIL" -ne 0 ]]; then
