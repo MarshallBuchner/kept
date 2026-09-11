@@ -48,7 +48,7 @@ Events queue in `localStorage` and forward to `window.keptAnalytics` / `dataLaye
 
 ### Soft-launch checklist (Marshall morning playbook)
 
-**One-pager:** [`docs/soft-launch/MORNING.md`](docs/soft-launch/MORNING.md) · Domain: [`DOMAIN.md`](docs/soft-launch/DOMAIN.md) · Pixel: [`PIXEL.md`](docs/soft-launch/PIXEL.md)
+**One-pager:** [`docs/soft-launch/MORNING.md`](docs/soft-launch/MORNING.md) · Domain: [`DOMAIN.md`](docs/soft-launch/DOMAIN.md) · Pixel: [`PIXEL.md`](docs/soft-launch/PIXEL.md) · Ads: [`ADS.md`](docs/soft-launch/ADS.md)
 
 **Goal:** Pixel firing → 1 soft post → tiny paid test (on `kept-eosin.vercel.app` today) · custom domain live in parallel.
 

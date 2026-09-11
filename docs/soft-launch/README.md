@@ -16,7 +16,7 @@ Paste-ready assets for Kept TikTok soft posts + first paid test.
 | `creative/og-1200x630.png` | Link preview / OG |
 | `creative/kept-mark-512.png` / `kept-icon-1024.png` | Profile avatar |
 
-One-pager: [`MORNING.md`](./MORNING.md) · Domain: [`DOMAIN.md`](./DOMAIN.md) · Pixel: [`PIXEL.md`](./PIXEL.md)
+One-pager: [`MORNING.md`](./MORNING.md) · Domain: [`DOMAIN.md`](./DOMAIN.md) · Pixel: [`PIXEL.md`](./PIXEL.md) · Ads: [`ADS.md`](./ADS.md)
 
 After DNS, crop out `kept-eosin.vercel.app` and use `keptapp.ca` in captions.
 
