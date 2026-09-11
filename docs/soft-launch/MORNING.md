@@ -4,6 +4,8 @@
 
 **Do not wait on the domain to start spending.** Pixel + soft post + Traffic ads can run today on production. Buy/attach the domain in parallel (or right after).
 
+**Launcher:** open [`/soft-launch`](https://kept-eosin.vercel.app/soft-launch) (or local [`LAUNCH.html`](./LAUNCH.html)) for one-tap deep links.
+
 ## 0. Product stack — done
 
 https://github.com/MarshallBuchner/kept/pull/25–#30 are **merged** (green Welcome/Home, Archive folders, CompleteRegistration + `ttclid`, Get Started → `/?welcome=1`, creatives/runbook, Pixel create path, Checkout header forced to **Kept**). Production already serves `/welcome`.

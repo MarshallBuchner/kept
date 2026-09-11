@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Kept soft-launch — Marshall launcher</title>
+    <style>
+      :root {
+        --sage: #516a57;
+        --ink: #1c241e;
+        --paper: #f4f6f4;
+        --muted: #5c6b60;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: "Segoe UI", system-ui, sans-serif;
+        background: radial-gradient(120% 80% at 50% 0%, #6a8570 0%, #516a57 45%, #3a4d40 100%);
+        color: white;
+        min-height: 100vh;
+        padding: 2rem 1.25rem 3rem;
+      }
+      main {
+        max-width: 420px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 1.75rem;
+        margin: 0 0 0.35rem;
+      }
+      .sub {
+        opacity: 0.85;
+        margin: 0 0 1.5rem;
+        line-height: 1.45;
+      }
+      ol {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        gap: 0.75rem;
+      }
+      a.btn {
+        display: block;
+        text-decoration: none;
+        color: var(--ink);
+        background: white;
+        border-radius: 1rem;
+        padding: 0.95rem 1rem;
+        font-weight: 650;
+        font-size: 0.98rem;
+      }
+      a.btn span {
+        display: block;
+        font-weight: 500;
+        font-size: 0.78rem;
+        color: var(--muted);
+        margin-top: 0.2rem;
+      }
+      button.open-all {
+        width: 100%;
+        margin-top: 1rem;
+        border: 0;
+        border-radius: 1rem;
+        padding: 0.95rem 1rem;
+        font-weight: 700;
+        font-size: 1rem;
+        background: #122016;
+        color: white;
+        cursor: pointer;
+      }
+      .note {
+        margin-top: 1.25rem;
+        font-size: 0.82rem;
+        line-height: 1.45;
+        opacity: 0.88;
+      }
+      code {
+        font-size: 0.78rem;
+        background: rgba(0, 0, 0, 0.25);
+        padding: 0.1rem 0.35rem;
+        border-radius: 0.35rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Kept soft-launch</h1>
+      <p class="sub">
+        Open these in order. Ads can run on <code>kept-eosin.vercel.app</code> before the domain is live.
+      </p>
+      <ol>
+        <li>
+          <a
+            class="btn"
+            target="_blank"
+            rel="noopener"
+            href="https://ads.tiktok.com/"
+          >
+            1. TikTok Ads Manager → create Pixel
+            <span>Tools → Events Manager → Connect Data Source → Web → Manual Setup</span>
+          </a>
+        </li>
+        <li>
+          <a
+            class="btn"
+            target="_blank"
+            rel="noopener"
+            href="https://vercel.com/powr4/kept/settings/environment-variables"
+          >
+            2. Vercel → set NEXT_PUBLIC_TIKTOK_PIXEL_ID
+            <span>Production env → Redeploy (or Actions → Wire soft-launch env)</span>
+          </a>
+        </li>
+        <li>
+          <a
+            class="btn"
+            target="_blank"
+            rel="noopener"
+            href="https://kept-eosin.vercel.app/welcome"
+          >
+            3. Smoke-test /welcome
+            <span>Get Started → CompleteRegistration in TikTok Test Events</span>
+          </a>
+        </li>
+        <li>
+          <a
+            class="btn"
+            target="_blank"
+            rel="noopener"
+            href="https://ads.tiktok.com/"
+          >
+            4. Soft post + Traffic ad
+            <span>Auction → Traffic → Website → Landing Page View → /welcome</span>
+          </a>
+        </li>
+        <li>
+          <a
+            class="btn"
+            target="_blank"
+            rel="noopener"
+            href="https://www.namecheap.com/domains/registration/results/?domain=keptapp.ca"
+          >
+            5. Buy keptapp.ca (~$11.98/yr)
+            <span>CIRA: Canadian citizen / PR / corp</span>
+          </a>
+        </li>
+        <li>
+          <a
+            class="btn"
+            target="_blank"
+            rel="noopener"
+            href="https://vercel.com/powr4/kept/settings/domains"
+          >
+            6. Attach domain on Vercel
+            <span>Then NEXT_PUBLIC_APP_URL=https://keptapp.ca → Redeploy</span>
+          </a>
+        </li>
+      </ol>
+      <button class="open-all" type="button" id="open-all">Open Pixel + Vercel + Namecheap tabs</button>
+      <p class="note">
+        Creative: <code>docs/soft-launch/creative/tiktok-green-live-demo-9x16.mp4</code><br />
+        Full playbook: <code>docs/soft-launch/MORNING.md</code><br />
+        Or paste in the agent chat: <code>PIXEL_ID=…</code> and <code>VERCEL_TOKEN=…</code>
+      </p>
+    </main>
+    <script>
+      document.getElementById("open-all").addEventListener("click", () => {
+        const urls = [
+          "https://ads.tiktok.com/",
+          "https://vercel.com/powr4/kept/settings/environment-variables",
+          "https://www.namecheap.com/domains/registration/results/?domain=keptapp.ca",
+          "https://kept-eosin.vercel.app/welcome",
+        ];
+        urls.forEach((url, i) => {
+          window.setTimeout(() => window.open(url, "_blank", "noopener"), i * 200);
+        });
+      });
+    </script>
+  </body>
+</html>
