@@ -2,7 +2,12 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+<<<<<<< HEAD
 import { BrandWord, KeptPageMark } from "@/components/Logo";
+=======
+import { BrandWord, LogoMark } from "@/components/Logo";
+import { track } from "@/lib/analytics";
+>>>>>>> origin/cursor/pixel-complete-registration-2a26
 import { setOnboarded } from "@/lib/storage";
 
 export function WelcomeScreen() {
@@ -10,6 +15,7 @@ export function WelcomeScreen() {
 
   function start() {
     setOnboarded();
+    track("onboarded", { surface: "welcome" });
     router.replace("/");
   }
 
