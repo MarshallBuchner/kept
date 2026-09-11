@@ -86,10 +86,10 @@ Wait for production deploy, then buy domain / set Pixel.
 
 Profile ≠ Ads. You need **TikTok Ads Manager / Business Center** to create a Pixel and run ads.
 
-1. TikTok Ads → **Assets → Events** → Web Events → Create Pixel → copy Pixel ID.
+1. TikTok Ads → **Tools → Events Manager → Connect Data Source → Web → Manual Setup** → copy Pixel ID (skip installing TikTok’s snippet — Kept already loads it).
 2. Vercel Production env: `NEXT_PUBLIC_TIKTOK_PIXEL_ID=<id>` → Redeploy.
 3. Smoke-test on the live domain (TikTok Events Manager → Test Events):
-   - `/welcome` Get Started → `CompleteRegistration` (PR #24)
+   - `/welcome` Get Started → `CompleteRegistration`
    - open paywall → `ViewContent`
    - start checkout → `InitiateCheckout`
    - complete payment → `CompletePayment`
