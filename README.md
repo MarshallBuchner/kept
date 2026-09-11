@@ -58,12 +58,16 @@ RDAP still shows **available:** `keptapp.ca` (preferred), `keptscan.ca`.
 
 #### 0) Merge ready product PRs (2 min)
 
-Merge in any order, then wait for production deploy:
+**Fast path:** merge https://github.com/MarshallBuchner/kept/pull/25 (stacks #22+#23+#24+#21, Welcome conflict already resolved).
 
-- https://github.com/MarshallBuchner/kept/pull/21 — this runbook + creative pack
-- https://github.com/MarshallBuchner/kept/pull/22 — Archive folders open documents
-- https://github.com/MarshallBuchner/kept/pull/23 — full sage Home + large Kept mark
-- https://github.com/MarshallBuchner/kept/pull/24 — `CompleteRegistration` on Welcome Get Started
+**Or one-by-one** (order matters for Welcome):
+
+1. https://github.com/MarshallBuchner/kept/pull/22 — Archive folders open documents  
+2. https://github.com/MarshallBuchner/kept/pull/23 — full sage Home + large Kept mark  
+3. https://github.com/MarshallBuchner/kept/pull/24 — `CompleteRegistration` + `ttclid` (includes green Welcome)  
+4. https://github.com/MarshallBuchner/kept/pull/21 — this runbook + creative pack  
+
+Wait for production deploy, then buy domain / set Pixel.
 
 #### 1) Buy + attach domain (~15–30 min)
 

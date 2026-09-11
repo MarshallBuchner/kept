@@ -4,9 +4,12 @@
 
 ## 0. Merge (2 min)
 
-https://github.com/MarshallBuchner/kept/pull/21 · [#22](https://github.com/MarshallBuchner/kept/pull/22) · [#23](https://github.com/MarshallBuchner/kept/pull/23) · [#24](https://github.com/MarshallBuchner/kept/pull/24)
+**Fast path (recommended):** merge https://github.com/MarshallBuchner/kept/pull/25 — already stacks #22+#23+#24+#21 with the WelcomeScreen conflict resolved.
 
-Wait for production deploy. Prefer ad landing after #23 (green Home) + #24 (`CompleteRegistration`).
+**Or one-by-one:** [#22](https://github.com/MarshallBuchner/kept/pull/22) → [#23](https://github.com/MarshallBuchner/kept/pull/23) → [#24](https://github.com/MarshallBuchner/kept/pull/24) → [#21](https://github.com/MarshallBuchner/kept/pull/21)  
+(#24 now includes green Welcome, so #23→#24 is clean.)
+
+Wait for production deploy before buying domain / setting Pixel.
 
 ## 1. Domain (~15–30 min) → [DOMAIN.md](./DOMAIN.md)
 
