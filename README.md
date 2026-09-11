@@ -98,7 +98,9 @@ Prefer **`tiktok-green-live-demo-9x16.mp4`** (live Welcome→Home). Alt: `tiktok
 
 #### 4) Tiny paid TikTok test (can run before domain)
 
-1. Ads Manager → **Traffic** (day-one) or Website Conversions once Pixel has events → destination = **`https://kept-eosin.vercel.app/welcome`** (switch to `keptapp.ca/welcome` after DNS).
+Full click path: [`docs/soft-launch/ADS.md`](docs/soft-launch/ADS.md).
+
+1. Ads Manager → **Create → Auction → Traffic** → Website → optimize **Landing Page View** → destination = **`https://kept-eosin.vercel.app/welcome`** (switch to `keptapp.ca/welcome` after DNS).
 2. Suggested day-one settings:
    - Budget: CAD **$5–20/day**, run **3–5 days** max for learning
    - Location: Canada (or your city) · Age 22–54 · Automatic placements
