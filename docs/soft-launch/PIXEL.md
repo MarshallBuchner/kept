@@ -9,7 +9,7 @@ Official path (TikTok help, June 2026): [Set up and Verify Pixel](https://ads.ti
 1. Open [TikTok Ads Manager](https://ads.tiktok.com/) (Business Center — **not** the consumer TikTok app).
 2. **Tools** → **Events Manager**.
 3. **Connect Data Source** → **Web**.
-4. Enter site URL: `https://keptapp.ca` (or `https://kept-eosin.vercel.app` until the domain is live).
+4. Enter site URL: **`https://kept-eosin.vercel.app`** now (switch Pixel “website” / ads destination to `https://keptapp.ca` after DNS — no code change required beyond `NEXT_PUBLIC_APP_URL`).
 5. Choose **Manual Setup** (skip Partner Integration — Shopify/GTM/etc. do not apply).
 6. Name the pixel (e.g. `Kept` or `keptapp.ca`) → create.
 7. Copy the **Pixel ID** (digits). **Skip installing TikTok’s base-code snippet** — Kept already loads it via `TikTokPixel` when the env var is set. You only need the ID.
