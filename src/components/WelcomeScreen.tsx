@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { BrandWord, KeptPageMark } from "@/components/Logo";
+import { BrandWord, LogoMark } from "@/components/Logo";
 import { track } from "@/lib/analytics";
 import { setOnboarded } from "@/lib/storage";
 
@@ -12,17 +12,12 @@ export function WelcomeScreen() {
   }
 
   return (
-    <main
-      className="relative mx-auto flex min-h-full w-full max-w-[430px] flex-col overflow-hidden px-6 pb-10 pt-14 text-white"
-      style={{
-        background: "radial-gradient(120% 80% at 50% 20%, #6a8570 0%, #516a57 44%, #3a4d40 100%)",
-      }}
-    >
+    <main className="mx-auto flex min-h-full w-full max-w-[430px] flex-col bg-paper px-6 pb-10 pt-16">
       <div className="flex flex-1 flex-col items-center justify-center text-center animate-fade-up">
-        <KeptPageMark size={220} />
-        <BrandWord className="mt-8 text-[42px] leading-none text-white" />
-        <p className="mt-3 text-[17px] font-medium text-white/90">Scan it. Clean it. Keep it.</p>
-        <p className="mt-3 max-w-[280px] text-[15px] leading-6 text-white/70">
+        <LogoMark size={88} />
+        <BrandWord className="mt-7 text-[42px] leading-none" />
+        <p className="mt-3 text-[17px] font-medium text-ink">Scan it. Clean it. Keep it.</p>
+        <p className="mt-3 max-w-[280px] text-[15px] leading-6 text-muted">
           Turn messy receipts and documents into clean, organized files in seconds.
         </p>
       </div>
@@ -32,23 +27,20 @@ export function WelcomeScreen() {
         <Link
           href="/?welcome=1"
           onClick={markStarted}
-          className="flex w-full items-center justify-center rounded-2xl bg-white px-4 py-[16px] text-[16px] font-semibold text-accent-strong"
+          className="flex w-full items-center justify-center rounded-2xl bg-accent px-4 py-[16px] text-[16px] font-semibold text-white"
         >
           Get Started
         </Link>
-        <p className="text-[12px] text-white/65">
-          <Link href="/privacy" className="text-white underline-offset-2 hover:underline">
+        <p className="text-[12px] text-muted">
+          <Link href="/privacy" className="text-accent">
             Privacy
           </Link>
-          <span className="mx-2 text-white/40">·</span>
-          <Link href="/terms" className="text-white underline-offset-2 hover:underline">
+          <span className="mx-2 text-muted">·</span>
+          <Link href="/terms" className="text-accent">
             Terms
           </Link>
-          <span className="mx-2 text-white/40">·</span>
-          <a
-            href="mailto:keptscan@gmail.com"
-            className="text-white underline-offset-2 hover:underline"
-          >
+          <span className="mx-2 text-muted">·</span>
+          <a href="mailto:keptscan@gmail.com" className="text-accent">
             Contact
           </a>
         </p>
