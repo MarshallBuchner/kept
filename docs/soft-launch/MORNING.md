@@ -11,6 +11,8 @@
 
 Wait for production deploy before buying domain / setting Pixel.
 
+**Ads URL rule:** only `https://keptapp.ca` (after DNS) or `https://kept-eosin.vercel.app` until then. Never a `*-git-*vercel.app` preview — those are SSO-gated and will break ad clicks.
+
 ## 1. Domain (~15–30 min) → [DOMAIN.md](./DOMAIN.md)
 
 1. Buy **`keptapp.ca`** (still available) — Cloudflare Registrar or CIRA.  
