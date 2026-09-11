@@ -6,7 +6,8 @@ Paste-ready assets for Kept TikTok soft posts + first paid test.
 
 | File | Use |
 | --- | --- |
-| `creative/tiktok-static-9x16.png` | TikTok / Reels static (preferred) |
+| `creative/tiktok-demo-slideshow.mp4` | **Preferred** 9:16 ~7s Welcome → Home → brand static (upload to TikTok / Ads) |
+| `creative/tiktok-static-9x16.png` | TikTok / Reels static |
 | `creative/tiktok-static-1x1.png` | Feed square |
 | `creative/tiktok-brand-9x16.png` | Brand-only fallback (no UI) |
 | `creative/home-green.png` | Raw Home screenshot (merge PR #23 first for production to match) |

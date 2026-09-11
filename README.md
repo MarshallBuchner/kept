@@ -112,16 +112,20 @@ Use production URL until DNS is live, then swap.
 Creative ideas: before/after receipt photo; 10–15s screen recording of scan→PDF; static Kept mark + tagline.
 
 **Ready-to-upload files:** `docs/soft-launch/creative/`  
-Prefer `tiktok-static-9x16.png` (Home UI on sage). Also square `tiktok-static-1x1.png`, brand-only `tiktok-brand-9x16.png`, plus raw Home/Welcome screenshots and OG. Index: `docs/soft-launch/README.md`.
+Prefer **`tiktok-demo-slideshow.mp4`** (9:16 Welcome→Home). Fallback stills: `tiktok-static-9x16.png`, square `tiktok-static-1x1.png`, brand-only `tiktok-brand-9x16.png`, plus raw screenshots + OG. Index: `docs/soft-launch/README.md`.
 
 #### 5) Tiny paid TikTok test
 
-1. Ads Manager → Traffic or Website Conversions → destination = custom domain (or production until DNS).
-2. Budget: start tiny (e.g. daily CAD $5–20) — learn, don’t scale.
-3. Creative: upload `docs/soft-launch/creative/tiktok-static-9x16.png` or a 10–15s screen record; landing must show Privacy/Terms (Welcome + Settings).
+1. Ads Manager → **Traffic** (day-one) or Website Conversions once Pixel has events → destination = `keptapp.ca` (or `https://kept-eosin.vercel.app` until DNS).
+2. Suggested day-one settings:
+   - Budget: CAD **$5–20/day**, run **3–5 days** max for learning
+   - Location: Canada (or your city) · Age 22–54 · Automatic placements
+   - Optimization: Landing page views (Traffic) until Pixel has ≥50 events, then switch Conversions → `ViewContent` / `InitiateCheckout`
+   - Bid: lowest cost / automatic
+3. Creative: upload `docs/soft-launch/creative/tiktok-demo-slideshow.mp4` (or the 9:16 static); landing must show Privacy/Terms (Welcome + Settings). Prefer `/welcome` as the click URL.
 4. Paste-ready ad text:  
    `Tired of crumpled receipts? Scan, clean, and keep them as tidy files — on your device. Kept.`  
-   CTA: **Learn more** / **Download** → your live URL.
+   CTA: **Learn more** → your live `/welcome` URL.
 
 After domain + Pixel redeploy:
 
