@@ -1,18 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { BrandWord, KeptPageMark } from "@/components/Logo";
 import { track } from "@/lib/analytics";
 import { setOnboarded } from "@/lib/storage";
 
 export function WelcomeScreen() {
-  const router = useRouter();
-
-  function start() {
+  function markStarted() {
     setOnboarded();
     track("onboarded", { surface: "welcome" });
-    router.replace("/");
   }
 
   return (
@@ -32,13 +28,14 @@ export function WelcomeScreen() {
       </div>
 
       <div className="flex flex-col items-center gap-4 animate-fade-up" style={{ animationDelay: "80ms" }}>
-        <button
-          type="button"
-          onClick={start}
-          className="w-full rounded-2xl bg-white px-4 py-[16px] text-[16px] font-semibold text-accent-strong"
+        {/* Real <a> navigation so ad landings still work if JS is slow/blocked */}
+        <Link
+          href="/?welcome=1"
+          onClick={markStarted}
+          className="flex w-full items-center justify-center rounded-2xl bg-white px-4 py-[16px] text-[16px] font-semibold text-accent-strong"
         >
           Get Started
-        </button>
+        </Link>
         <p className="text-[12px] text-white/65">
           <Link href="/privacy" className="text-white underline-offset-2 hover:underline">
             Privacy
