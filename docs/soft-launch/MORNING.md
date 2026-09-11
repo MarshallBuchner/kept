@@ -19,6 +19,7 @@ Unblocks measurement for the first ad.
 1. Ads Manager (not the TikTok app) → **Tools → Events Manager → Connect Data Source → Web → Manual Setup**  
    Site URL: `https://kept-eosin.vercel.app` → copy Pixel ID (skip installing TikTok’s snippet — app already has it).  
 2. [Env → Production](https://vercel.com/powr4/kept/settings/environment-variables): `NEXT_PUBLIC_TIKTOK_PIXEL_ID=<id>` → **Redeploy**.  
+   Or one-command: `PIXEL_ID=<id> VERCEL_TOKEN=… ./scripts/wire-soft-launch-env.sh` (optional `VERCEL_TEAM_ID` for team powr4).  
 3. Test Events on `https://kept-eosin.vercel.app`: `/welcome` Get Started → `CompleteRegistration`; paywall → `ViewContent`; checkout → `InitiateCheckout`; paid → `CompletePayment`; scan → `ClickButton`.
 
 ```bash

@@ -42,6 +42,7 @@ Vercel → [Settings → Environment Variables](https://vercel.com/powr4/kept/se
 | `NEXT_PUBLIC_APP_URL` | `https://keptapp.ca` |
 
 Redeploy Production (Deployments → … → Redeploy). Stripe Checkout return URLs follow this env.  
+Or one-command: `APP_URL=https://keptapp.ca VERCEL_TOKEN=… ./scripts/wire-soft-launch-env.sh` (combine with `PIXEL_ID=…` if wiring both).  
 Then point the live TikTok ad + bio at `https://keptapp.ca/welcome`.
 
 ## D) Prove it

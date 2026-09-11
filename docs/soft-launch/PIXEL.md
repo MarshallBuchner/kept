@@ -26,6 +26,15 @@ Vercel → **kept** → [Settings → Environment Variables](https://vercel.com/
 
 **Redeploy** Production (required — `NEXT_PUBLIC_*` is baked at build time).
 
+One-command wire (if you have a Vercel token):
+
+```bash
+export VERCEL_TOKEN=…          # Account Settings → Tokens
+# export VERCEL_TEAM_ID=…      # if token is on team powr4
+export PIXEL_ID=YOUR_PIXEL_ID
+./scripts/wire-soft-launch-env.sh
+```
+
 ## Smoke-test (Events Manager → Test Events)
 
 On the live origin (`https://keptapp.ca` or `https://kept-eosin.vercel.app`):
