@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none" role="img" aria-label="Kept">
-  <rect width="512" height="512" rx="112" fill="#516a57"/>
+  <rect width="512" height="512" rx="0" fill="#516a57"/>
   <g transform="translate(108,82)">
     <!-- page -->
     <path
