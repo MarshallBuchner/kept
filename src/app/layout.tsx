@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 const keptSans = Inter({
@@ -30,7 +32,11 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${keptSans.variable} h-full antialiased`}>
-      <body className={`${keptSans.className} min-h-full bg-paper text-ink`}>{children}</body>
+      <body className={`${keptSans.className} min-h-full bg-paper text-ink`}>
+        {children}
+        <Analytics />
+        <SpeedInsights />
+      </body>
     </html>
   );
 }
