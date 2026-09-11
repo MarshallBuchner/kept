@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CaptureFlow } from "@/components/CaptureFlow";
 import { IconCamera, IconChevron, IconImage } from "@/components/Icons";
 import { BrandWord, KeptPageMark } from "@/components/Logo";
-import { hasOnboarded, loadDocs } from "@/lib/storage";
+import { hasOnboarded, loadDocs, setOnboarded } from "@/lib/storage";
 import { CATEGORY_LABEL, type KeptDoc } from "@/lib/types";
 
 export function HomeScreen() {
@@ -16,6 +16,13 @@ export function HomeScreen() {
   const [captureMode, setCaptureMode] = useState<"scan" | "import">("scan");
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("welcome") === "1") {
+      setOnboarded();
+      router.replace("/");
+      setDocs(loadDocs());
+      return;
+    }
     if (!hasOnboarded()) {
       router.replace("/welcome");
       return;
