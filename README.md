@@ -48,6 +48,8 @@ Events queue in `localStorage` and forward to `window.keptAnalytics` / `dataLaye
 
 ### Soft-launch checklist (Marshall morning playbook)
 
+**One-pager:** [`docs/soft-launch/MORNING.md`](docs/soft-launch/MORNING.md) · Domain: [`DOMAIN.md`](docs/soft-launch/DOMAIN.md) · Pixel: [`PIXEL.md`](docs/soft-launch/PIXEL.md)
+
 **Goal:** custom domain live → TikTok Pixel firing → 1 soft post → tiny paid test.
 
 PR #20 is already on production (`/privacy`, `/terms`, `/welcome`, `/og.png`). Soft-launch only from `https://kept-eosin.vercel.app` or your new domain — never a `*.vercel.app` preview URL.
@@ -58,9 +60,10 @@ RDAP still shows **available:** `keptapp.ca` (preferred), `keptscan.ca`.
 
 Merge in any order, then wait for production deploy:
 
-- https://github.com/MarshallBuchner/kept/pull/21 — this runbook (socials vs Ads Manager)
+- https://github.com/MarshallBuchner/kept/pull/21 — this runbook + creative pack
 - https://github.com/MarshallBuchner/kept/pull/22 — Archive folders open documents
 - https://github.com/MarshallBuchner/kept/pull/23 — full sage Home + large Kept mark
+- https://github.com/MarshallBuchner/kept/pull/24 — `CompleteRegistration` on Welcome Get Started
 
 #### 1) Buy + attach domain (~15–30 min)
 
@@ -82,6 +85,7 @@ Profile ≠ Ads. You need **TikTok Ads Manager / Business Center** to create a P
 1. TikTok Ads → **Assets → Events** → Web Events → Create Pixel → copy Pixel ID.
 2. Vercel Production env: `NEXT_PUBLIC_TIKTOK_PIXEL_ID=<id>` → Redeploy.
 3. Smoke-test on the live domain (TikTok Events Manager → Test Events):
+   - `/welcome` Get Started → `CompleteRegistration` (PR #24)
    - open paywall → `ViewContent`
    - start checkout → `InitiateCheckout`
    - complete payment → `CompletePayment`

@@ -24,6 +24,7 @@ On the live origin (`keptapp.ca` or `https://kept-eosin.vercel.app`):
 
 | Action in Kept | TikTok event |
 | --- | --- |
+| `/welcome` → Get Started | `CompleteRegistration` (needs PR #24) |
 | Open paywall | `ViewContent` |
 | Start Checkout | `InitiateCheckout` |
 | Finish payment | `CompletePayment` |
