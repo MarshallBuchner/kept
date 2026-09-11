@@ -54,12 +54,14 @@ Production today is still on `main` without OG / privacy / pixel — **merge PR 
    Confirm after deploy: `/privacy`, `/terms`, and `/og.png` return 200 on production.
 
 2. **Buy domain** — RDAP still showed available: **`keptapp.ca`** (preferred), else `keptscan.ca` / `keptscan.com`.  
-   Buy from any [CIRA-certified registrar](https://www.cira.ca/en/ca-domains/find-a-ca-registrar/) (Cloudflare / Namecheap / Google Domains-style .ca sellers work if they offer .ca).
+   Fast path: [Cloudflare Registrar](https://developers.cloudflare.com/registrar/get-started/register-domain/) (search `keptapp.ca` → Purchase; `.ca` needs Canadian presence). Or any [CIRA-certified registrar](https://www.cira.ca/en/ca-domains/find-a-ca-registrar/).
 
 3. **Attach in Vercel**  
-   Project → Settings → Domains → Add `keptapp.ca` (and `www` if you want) → copy DNS records to the registrar → wait for HTTPS.  
-   Then set Vercel Production env `NEXT_PUBLIC_APP_URL=https://keptapp.ca` → Redeploy.  
-   In Stripe Checkout settings / Dashboard, set success + cancel URLs to that same origin (or rely on `NEXT_PUBLIC_APP_URL` in code).
+   Project → Settings → Domains → Add `keptapp.ca` (and `www` if you want).  
+   - If registrar allows Vercel nameservers: use the NS values Vercel shows.  
+   - If bought on Cloudflare Registrar (CF nameservers required): keep CF DNS and add the A/CNAME records Vercel shows for the domain.  
+   Wait for HTTPS → set Vercel Production env `NEXT_PUBLIC_APP_URL=https://keptapp.ca` → Redeploy.  
+   Align Stripe Checkout success/cancel URLs to that same origin (or rely on `NEXT_PUBLIC_APP_URL` in code).
 
 4. **TikTok Pixel**  
    TikTok Ads → **Assets → Events** → Web Events → create Pixel → copy Pixel ID.  
