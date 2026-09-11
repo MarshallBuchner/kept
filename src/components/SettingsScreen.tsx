@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { PaywallSheet } from "@/components/PaywallSheet";
@@ -153,9 +154,17 @@ export function SettingsScreen() {
       <section className="rounded-[18px] bg-card p-5 ring-1 ring-rule">
         <h2 className="text-[15px] font-semibold">Privacy</h2>
         <p className="mt-2 text-[14px] leading-6 text-muted">
-          Your information stays private. Photos and extracted text are processed on this device.
-          Billing events stay on-device unless you connect analytics.
+          Photos and extracted text stay on this device. Payments go through Stripe. Hosted analytics
+          / ad pixels may measure visits and upgrades — details in Privacy.
         </p>
+        <div className="mt-4 flex gap-4 text-[14px] font-medium">
+          <Link href="/privacy" className="text-accent">
+            Privacy
+          </Link>
+          <Link href="/terms" className="text-accent">
+            Terms
+          </Link>
+        </div>
       </section>
 
       <button
