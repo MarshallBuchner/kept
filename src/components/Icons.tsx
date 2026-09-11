@@ -37,14 +37,6 @@ export function IconSettings({ className = "", size = 22 }: IconProps) {
   );
 }
 
-export function IconMenu({ className = "", size = 22 }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
-      <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 export function IconCamera({ className = "", size = 22 }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
@@ -120,14 +112,6 @@ export function IconSearch({ className = "", size = 18 }: IconProps) {
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
       <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="1.7" />
       <path d="m16.2 16.2 4 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-export function IconFilter({ className = "", size = 18 }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
-      <path d="M4 7h16M7 12h10M10 17h4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   );
 }

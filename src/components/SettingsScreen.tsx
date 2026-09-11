@@ -110,7 +110,7 @@ export function SettingsScreen() {
           <LogoMark size={48} />
           <div>
             <p className="text-[16px] font-semibold">Kept</p>
-            <p className="text-[13px] text-muted">Preferences, account, help</p>
+            <p className="text-[13px] text-muted">Preferences & help</p>
           </div>
         </div>
         <dl className="mt-5 space-y-3 text-[14px]">

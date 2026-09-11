@@ -125,6 +125,7 @@ export function DocumentScreen({ id }: { id: string }) {
   }
 
   function remove() {
+    if (!window.confirm("Delete this document from this device?")) return;
     deleteDoc(doc!.id);
     router.replace("/archive");
   }
@@ -145,7 +146,8 @@ export function DocumentScreen({ id }: { id: string }) {
             type="button"
             onClick={remove}
             className="ml-auto flex h-10 w-10 items-center justify-center text-muted"
-            aria-label="More"
+            aria-label="Delete document"
+            title="Delete"
           >
             <IconMore />
           </button>

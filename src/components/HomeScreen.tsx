@@ -4,13 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { CaptureFlow } from "@/components/CaptureFlow";
-import {
-  IconCamera,
-  IconChevron,
-  IconImage,
-  IconMenu,
-  IconMore,
-} from "@/components/Icons";
+import { IconCamera, IconChevron, IconImage } from "@/components/Icons";
 import { BrandWord } from "@/components/Logo";
 import { hasOnboarded, loadDocs } from "@/lib/storage";
 import { CATEGORY_LABEL, type KeptDoc } from "@/lib/types";
@@ -20,7 +14,6 @@ export function HomeScreen() {
   const [docs, setDocs] = useState<KeptDoc[]>([]);
   const [captureOpen, setCaptureOpen] = useState(false);
   const [captureMode, setCaptureMode] = useState<"scan" | "import">("scan");
-  const [menuDoc, setMenuDoc] = useState<string | null>(null);
 
   useEffect(() => {
     if (!hasOnboarded()) {
@@ -42,14 +35,8 @@ export function HomeScreen() {
   return (
     <>
       <div className="flex flex-col gap-6 px-5 pb-4 pt-3 animate-fade-up">
-        <header className="grid grid-cols-[40px_1fr_40px] items-center">
-          <button type="button" className="flex h-10 w-10 items-center justify-center text-ink" aria-label="Menu">
-            <IconMenu />
-          </button>
+        <header className="flex items-center justify-center">
           <BrandWord className="text-center text-[20px]" />
-          <div className="ml-auto flex h-9 w-9 items-center justify-center rounded-full bg-accent-soft text-[12px] font-semibold text-accent-strong">
-            JS
-          </div>
         </header>
 
         <section>
@@ -105,41 +92,20 @@ export function HomeScreen() {
             <ul className="overflow-hidden rounded-[18px] bg-card">
               {recent.map((doc, index) => (
                 <li key={doc.id} className={index > 0 ? "border-t border-rule" : ""}>
-                  <div className="relative flex items-center gap-3 px-3 py-3">
-                    <Link href={`/d/${doc.id}`} className="flex min-w-0 flex-1 items-center gap-3">
-                      <img
-                        src={doc.thumbnail}
-                        alt=""
-                        className="h-12 w-12 rounded-[10px] object-cover ring-1 ring-rule"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-[15px] font-semibold text-ink">{doc.title}</p>
-                        <p className="mt-0.5 truncate text-[12px] text-muted">
-                          {CATEGORY_LABEL[doc.category]} ·{" "}
-                          {formatWhen(doc.createdAt)}
-                        </p>
-                      </div>
-                    </Link>
-                    <button
-                      type="button"
-                      aria-label="More"
-                      onClick={() => setMenuDoc(menuDoc === doc.id ? null : doc.id)}
-                      className="flex h-8 w-8 items-center justify-center text-muted"
-                    >
-                      <IconMore size={18} />
-                    </button>
-                    {menuDoc === doc.id ? (
-                      <div className="absolute right-3 top-12 z-10 min-w-32 rounded-xl border border-rule bg-card p-1 shadow-md">
-                        <Link
-                          href={`/d/${doc.id}`}
-                          className="block rounded-lg px-3 py-2 text-[13px] text-ink"
-                          onClick={() => setMenuDoc(null)}
-                        >
-                          Open
-                        </Link>
-                      </div>
-                    ) : null}
-                  </div>
+                  <Link href={`/d/${doc.id}`} className="flex items-center gap-3 px-3 py-3">
+                    <img
+                      src={doc.thumbnail}
+                      alt=""
+                      className="h-12 w-12 rounded-[10px] object-cover ring-1 ring-rule"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[15px] font-semibold text-ink">{doc.title}</p>
+                      <p className="mt-0.5 truncate text-[12px] text-muted">
+                        {CATEGORY_LABEL[doc.category]} · {formatWhen(doc.createdAt)}
+                      </p>
+                    </div>
+                    <IconChevron className="shrink-0 text-muted" />
+                  </Link>
                 </li>
               ))}
             </ul>

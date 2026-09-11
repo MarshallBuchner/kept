@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { IconFilter, IconFolder, IconMenu, IconSearch } from "@/components/Icons";
+import { IconFolder, IconSearch } from "@/components/Icons";
 import { loadDocs } from "@/lib/storage";
 import {
   CATEGORY_LABEL,
@@ -79,32 +79,19 @@ export function ArchiveScreen() {
 
   return (
     <div className="flex flex-col gap-5 px-5 pb-4 pt-3 animate-fade-up">
-      <header className="grid grid-cols-[40px_1fr_40px] items-center">
-        <button type="button" className="flex h-10 w-10 items-center justify-center" aria-label="Menu">
-          <IconMenu />
-        </button>
+      <header className="flex items-center justify-center">
         <h1 className="text-center text-[20px] font-semibold">Archive</h1>
-        <span />
       </header>
 
-      <div className="flex items-center gap-2">
-        <label className="flex flex-1 items-center gap-2 rounded-full bg-chip px-4 py-3">
-          <IconSearch className="text-muted" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search documents..."
-            className="w-full bg-transparent text-[14px] outline-none placeholder:text-muted"
-          />
-        </label>
-        <button
-          type="button"
-          className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-chip text-ink"
-          aria-label="Filters"
-        >
-          <IconFilter />
-        </button>
-      </div>
+      <label className="flex items-center gap-2 rounded-full bg-chip px-4 py-3">
+        <IconSearch className="text-muted" />
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search documents..."
+          className="w-full bg-transparent text-[14px] outline-none placeholder:text-muted"
+        />
+      </label>
 
       <div className="flex gap-2 overflow-x-auto pb-1">
         {chips.map((chip) => (
