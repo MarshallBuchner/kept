@@ -70,7 +70,7 @@ export default function SoftLaunchLauncherPage() {
       </ol>
 
       <p className="mt-6 text-[12px] leading-5 text-white/75">
-        Creative: <code className="text-[11px]">docs/soft-launch/creative/tiktok-green-live-demo-9x16.mp4</code>
+        Creative: <code className="text-[11px]">docs/soft-launch/creative/tiktok-paper-live-demo-9x16.mp4</code>
         <br />
         Or paste in the agent chat: <code className="text-[11px]">PIXEL_ID=…</code> and{" "}
         <code className="text-[11px]">VERCEL_TOKEN=…</code>

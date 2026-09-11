@@ -46,12 +46,24 @@ else
 fi
 
 if [[ -n "${PIXEL_ID:-}" ]]; then
-  if echo "$html$welcome" | grep -q "$PIXEL_ID"; then
+  # Require the real ID in the served payload. Matching the React component
+  # name "TikTokPixel" alone is a false positive while the env is still empty.
+  payload="$html$welcome"
+  # Also scan a few linked JS chunks (Next may not inline the baked ID in HTML).
+  while IFS= read -r src; do
+    [[ -z "$src" ]] && continue
+    case "$src" in
+      http*) url="$src" ;;
+      /*) url="$BASE$src" ;;
+      *) url="$BASE/$src" ;;
+    esac
+    payload+="$(curl -sL --max-time 8 "$url" || true)"
+  done < <(printf '%s' "$html$welcome" | grep -oE 'src="[^"]+\.js[^"]*"' | sed 's/^src="//;s/"$//' | head -n 12)
+
+  if printf '%s' "$payload" | grep -Fq "$PIXEL_ID"; then
     ok "Pixel ID $PIXEL_ID found in HTML/JS payload"
-  elif echo "$html$welcome" | grep -qi 'TikTokPixel\|analytics.tiktok.com\|TiktokAnalyticsObject\|ttq.load'; then
-    ok "TikTok pixel loader referenced (confirm ID in TikTok Test Events)"
   else
-    bad "Pixel ID not visible — set NEXT_PUBLIC_TIKTOK_PIXEL_ID on Vercel Production and redeploy"
+    bad "Pixel ID $PIXEL_ID not in payload — set NEXT_PUBLIC_TIKTOK_PIXEL_ID on Vercel Production and redeploy"
   fi
 else
   if echo "$html$welcome" | grep -qi 'analytics.tiktok.com\|ttq.load'; then

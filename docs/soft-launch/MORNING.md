@@ -8,7 +8,7 @@
 
 ## 0. Product stack — done
 
-https://github.com/MarshallBuchner/kept/pull/25–#30 are **merged** (green Welcome/Home, Archive folders, CompleteRegistration + `ttclid`, Get Started → `/?welcome=1`, creatives/runbook, Pixel create path, Checkout header forced to **Kept**). Production already serves `/welcome`.
+https://github.com/MarshallBuchner/kept/pull/25–#30 + [#38](https://github.com/MarshallBuchner/kept/pull/38) are **merged** (paper **Welcome** + paper **Home**, full-bleed sage home-screen icon, Archive folders, CompleteRegistration + `ttclid`, Get Started → `/?welcome=1`, creatives/runbook, Pixel create path, Checkout header forced to **Kept**). Production already serves `/welcome`.
 
 **Ads URL rule:** until DNS is live use **`https://kept-eosin.vercel.app/welcome`**. After DNS switch to `https://keptapp.ca/welcome`. Never a `*-git-*.vercel.app` preview — those are SSO-gated and will break ad clicks.
 
@@ -30,7 +30,7 @@ PIXEL_ID=YOUR_ID ./scripts/verify-soft-launch.sh https://kept-eosin.vercel.app
 
 ## 2. Soft post + tiny ad (~20 min) → [ADS.md](./ADS.md)
 
-Upload: `creative/tiktok-green-live-demo-9x16.mp4`  
+Upload: `creative/tiktok-paper-live-demo-9x16.mp4`  
 
 **Caption (use until DNS):**  
 `Messy receipts → clean files in seconds. Kept — Scan it. Clean it. Keep it. https://kept-eosin.vercel.app/welcome`

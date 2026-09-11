@@ -42,7 +42,7 @@ Never a `*-git-*.vercel.app` preview URL (SSO-gated — ad clicks will fail).
 
 ## Ad creative
 
-1. Upload `creative/tiktok-green-live-demo-9x16.mp4` (preferred). Alts: `tiktok-demo-slideshow.mp4`, `tiktok-static-9x16.png`.
+1. Upload `creative/tiktok-paper-live-demo-9x16.mp4` (preferred — paper Welcome → paper Home). Alts: `tiktok-green-live-demo-9x16.mp4` (older green Welcome), `tiktok-demo-slideshow.mp4`, `tiktok-static-9x16.png`.
 2. Primary text:
 
 ```
