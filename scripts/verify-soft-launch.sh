@@ -29,6 +29,14 @@ for path in / /welcome /privacy /terms /og.png; do
   fi
 done
 
+# Operator launcher must not be public (noindex ≠ private — Bing found /soft-launch).
+soft_code=$(curl -sL -o /dev/null -w '%{http_code}' "$BASE/soft-launch" || true)
+if [[ "$soft_code" == "404" ]]; then
+  ok "/soft-launch → 404 (gated / not public)"
+else
+  bad "/soft-launch → $soft_code (want 404 without SOFT_LAUNCH_KEY)"
+fi
+
 html=$(curl -sL "$BASE/" || true)
 welcome=$(curl -sL "$BASE/welcome" || true)
 
