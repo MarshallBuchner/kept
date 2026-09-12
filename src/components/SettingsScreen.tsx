@@ -140,6 +140,9 @@ export function SettingsScreen() {
             <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-muted">
               Promo code
             </p>
+            <p className="mt-1 text-[12px] text-muted">
+              Apply here in Kept — Stripe checkout won’t accept this code.
+            </p>
             <div className="mt-2 flex gap-2">
               <input
                 type="text"
