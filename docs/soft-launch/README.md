@@ -17,7 +17,9 @@ Paste-ready assets for Kept TikTok soft posts + first paid test.
 | `creative/og-1200x630.png` | Link preview / OG |
 | `creative/kept-mark-512.png` / `kept-icon-1024.png` | Profile avatar |
 
-One-pager: [`MORNING.md`](./MORNING.md) · Launcher: [`LAUNCH.html`](./LAUNCH.html) (or gated `/soft-launch?key=…`) · Domain: [`DOMAIN.md`](./DOMAIN.md) · Pixel: [`PIXEL.md`](./PIXEL.md) · Ads: [`ADS.md`](./ADS.md)
+**Status:** Domain buy/attach is **frozen** — see [`STATUS.md`](./STATUS.md). Soft-launch checklist treated complete (Pixel + ads on Vercel URL). App Store path: [`../ios/APP_STORE.md`](../ios/APP_STORE.md).
+
+One-pager: [`MORNING.md`](./MORNING.md) · Launcher: [`LAUNCH.html`](./LAUNCH.html) (or gated `/soft-launch?key=…`) · Domain: [`DOMAIN.md`](./DOMAIN.md) (deferred) · Pixel: [`PIXEL.md`](./PIXEL.md) · Ads: [`ADS.md`](./ADS.md)
 
 **Before launch / spend:** run the hygiene sweep in [`../PRELAUNCH.md`](../PRELAUNCH.md) (public “internal” pages, ad URLs, leaks).
 

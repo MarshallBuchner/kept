@@ -60,15 +60,17 @@ Owner promo `KEPT-OWNER` remains Settings / paywall in-app (not Stripe).
 
 ## Soft-launch vs App Store
 
-Keep soft-launch moving on **web + TikTok ads** (`keptapp.ca` still to buy/attach).  
-iOS packaging can proceed in parallel via TestFlight without blocking ads.
+Domain buy (`keptapp.ca`) is **frozen** — not required for TestFlight.  
+Use `https://kept-eosin.vercel.app` for the shell until Marshall resumes domain work.  
+Listing copy + Connect fields: [`APP_STORE.md`](./APP_STORE.md).
 
 ## Useful commands
 
 ```bash
 npm run cap:sync          # copy web + update native projects
 npm run cap:open:ios      # open Xcode
-CAPACITOR_SERVER_URL=https://keptapp.ca npx cap sync ios   # after custom domain
+# Later, if domain is live:
+# CAPACITOR_SERVER_URL=https://keptapp.ca npx cap sync ios
 ```
 
 ## If something breaks

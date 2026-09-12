@@ -72,5 +72,8 @@
 	<string>Kept needs photo access to import receipts and documents.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Kept can save cleaned documents back to your library when you choose.</string>
+	<!-- Standard HTTPS only — speeds up App Store Connect export compliance. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>
