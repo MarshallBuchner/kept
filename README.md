@@ -38,7 +38,9 @@ Kept Pro unlocks unlimited scans + exports via Stripe Checkout.
 
 Paywall lets users pick **monthly** or **yearly** (yearly highlighted by default).
 
-Without Stripe keys, **Upgrade to Pro** unlocks a local **demo Pro** entitlement so you can test the paywall funnel.
+Without Stripe keys, set `ALLOW_DEMO_PRO=1` locally so **Upgrade to Pro** unlocks a local **demo Pro** entitlement for funnel testing.
+
+**Owner lifetime unlock:** Settings → Promo code (or paywall → “Have a promo code?”) → enter `KEPT-OWNER`. That stores lifetime Pro on the device and skips the paywall. Override the code with `KEPT_LIFETIME_PROMO_CODE` on Vercel if you want to rotate it.
 
 ### Funnel analytics events
 
