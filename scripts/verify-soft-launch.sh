@@ -46,21 +46,28 @@ else
 fi
 
 if [[ -n "${PIXEL_ID:-}" ]]; then
-  # Require the real ID in the served payload. Matching the React component
-  # name "TikTokPixel" alone is a false positive while the env is still empty.
-  payload="$html$welcome"
-  # Also scan a few linked JS chunks (Next may not inline the baked ID in HTML).
-  while IFS= read -r src; do
-    [[ -z "$src" ]] && continue
-    case "$src" in
-      http*) url="$src" ;;
-      /*) url="$BASE$src" ;;
-      *) url="$BASE/$src" ;;
-    esac
-    payload+="$(curl -sL --max-time 8 "$url" || true)"
-  done < <(printf '%s' "$html$welcome" | grep -oE 'src="[^"]+\.js[^"]*"' | sed 's/^src="//;s/"$//' | head -n 12)
+  # Require the real ID in HTML or linked JS. Matching "TikTokPixel" alone is a
+  # false positive while the env is still empty. Check chunks one-by-one — a
+  # giant concatenated payload can exceed ARG_MAX and make grep falsely fail.
+  found=0
+  if printf '%s' "$html$welcome" | grep -Fq "$PIXEL_ID"; then
+    found=1
+  else
+    while IFS= read -r src; do
+      [[ -z "$src" ]] && continue
+      case "$src" in
+        http*) url="$src" ;;
+        /*) url="$BASE$src" ;;
+        *) url="$BASE/$src" ;;
+      esac
+      if curl -sL --max-time 8 "$url" | grep -Fq "$PIXEL_ID"; then
+        found=1
+        break
+      fi
+    done < <(printf '%s' "$html$welcome" | grep -oE 'src="[^"]+\.js[^"]*"' | sed 's/^src="//;s/"$//' | awk '!a[$0]++' | head -n 20)
+  fi
 
-  if printf '%s' "$payload" | grep -Fq "$PIXEL_ID"; then
+  if [[ "$found" -eq 1 ]]; then
     ok "Pixel ID $PIXEL_ID found in HTML/JS payload"
   else
     bad "Pixel ID $PIXEL_ID not in payload — set NEXT_PUBLIC_TIKTOK_PIXEL_ID on Vercel Production and redeploy"
