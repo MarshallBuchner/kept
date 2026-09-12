@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "Soft-launch launcher",
@@ -16,7 +17,7 @@ const STEPS: ReadonlyArray<{
   {
     href: "https://ads.tiktok.com/",
     title: "1. TikTok Pixel",
-    detail: "Live — DAINOAJC77UDHLL3UCVG in prod JS · Events Manager Connected",
+    detail: "Live in prod JS · Events Manager Connected",
     status: "done",
   },
   {
@@ -57,7 +58,23 @@ const STATUS_LABEL: Record<StepStatus, string> = {
   todo: "Todo",
 };
 
-export default function SoftLaunchLauncherPage() {
+/**
+ * Operator checklist — not a product page.
+ * Requires SOFT_LAUNCH_KEY (Vercel env) + ?key=… or it 404s.
+ * Prefer local docs/soft-launch/LAUNCH.html when you don’t want a live URL.
+ */
+export default async function SoftLaunchLauncherPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ key?: string | string[] }>;
+}) {
+  const expected = process.env.SOFT_LAUNCH_KEY?.trim();
+  const raw = (await searchParams).key;
+  const provided = Array.isArray(raw) ? raw[0] : raw;
+  if (!expected || !provided || provided !== expected) {
+    notFound();
+  }
+
   return (
     <main
       className="mx-auto flex min-h-full w-full max-w-[430px] flex-col px-5 pb-12 pt-10 text-white"
@@ -69,7 +86,7 @@ export default function SoftLaunchLauncherPage() {
       <p className="mt-2 text-[14px] leading-5 text-white/80">
         Remaining: domain buy/attach + ads leaving review. Ads already point at{" "}
         <span className="font-mono text-[12px]">kept-eosin.vercel.app/welcome</span> — never a
-        git-preview URL. Marshall-only — not indexed.
+        git-preview URL. Gated by <span className="font-mono text-[12px]">SOFT_LAUNCH_KEY</span>.
       </p>
 
       <ol className="mt-6 list-none space-y-3 p-0">
@@ -109,7 +126,7 @@ export default function SoftLaunchLauncherPage() {
         <br />
         Prove:{" "}
         <code className="text-[11px]">
-          PIXEL_ID=DAINOAJC77UDHLL3UCVG ./scripts/verify-soft-launch.sh https://keptapp.ca
+          PIXEL_ID=… ./scripts/verify-soft-launch.sh https://keptapp.ca
         </code>
       </p>
     </main>
