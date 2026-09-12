@@ -11,6 +11,8 @@ BASE="${1:-https://kept-eosin.vercel.app}"
 BASE="${BASE%/}"
 FAIL=0
 NOTES=()
+PIXEL_OK=0
+ON_CUSTOM=0
 
 ok() { printf '  OK  %s\n' "$1"; }
 bad() { printf '  FAIL %s\n' "$1"; FAIL=1; }
@@ -30,7 +32,7 @@ done
 html=$(curl -sL "$BASE/" || true)
 welcome=$(curl -sL "$BASE/welcome" || true)
 
-if echo "$html" | grep -qi 'Scan it. Clean it. Keep it\|Kept'; then
+if echo "$html" | grep -qi 'Scan it\. Clean it\. Keep it\|Kept'; then
   ok "brand/tagline present on /"
 else
   bad "brand/tagline missing on /"
@@ -69,32 +71,44 @@ if [[ -n "${PIXEL_ID:-}" ]]; then
 
   if [[ "$found" -eq 1 ]]; then
     ok "Pixel ID $PIXEL_ID found in HTML/JS payload"
+    PIXEL_OK=1
   else
     bad "Pixel ID $PIXEL_ID not in payload — set NEXT_PUBLIC_TIKTOK_PIXEL_ID on Vercel Production and redeploy"
   fi
 else
   if echo "$html$welcome" | grep -qi 'analytics.tiktok.com\|ttq.load'; then
     ok "TikTok analytics script present"
+    PIXEL_OK=1
   else
     note "Pixel still off (set PIXEL_ID=... to assert; empty env keeps pixel off)"
   fi
 fi
 
 host=$(echo "$BASE" | sed -E 's#https?://##; s#/.*##')
-if [[ "$host" == *vercel.app* ]]; then
+if [[ "$host" == "keptapp.ca" || "$host" == "www.keptapp.ca" ]]; then
+  ok "checking custom domain origin"
+  ON_CUSTOM=1
+elif [[ "$host" == *vercel.app* ]]; then
   note "still on vercel.app — buy/attach keptapp.ca, set NEXT_PUBLIC_APP_URL, redeploy, re-run"
 fi
 
-if [[ "$host" == "keptapp.ca" || "$host" == "www.keptapp.ca" ]]; then
-  ok "checking custom domain origin"
-fi
-
 echo
-echo "Remaining Marshall gates (if any NOTE/FAIL above):"
-echo "  1. Ads Manager Pixel → NEXT_PUBLIC_TIKTOK_PIXEL_ID → redeploy"
-echo "  2. Soft post + Traffic ad to /welcome (never a git-preview URL)"
-echo "  3. Buy+attach keptapp.ca → NEXT_PUBLIC_APP_URL → redeploy (parallel OK)"
-echo "  4. Stripe Dashboard Public details → Kept (Checkout header already forced in app)"
+remaining=()
+if [[ "$PIXEL_OK" -ne 1 ]]; then
+  remaining+=("Ads Manager Pixel → NEXT_PUBLIC_TIKTOK_PIXEL_ID → redeploy")
+fi
+remaining+=("Traffic ad Active/Delivering + soft post (Ads Manager — never a git-preview URL)")
+if [[ "$ON_CUSTOM" -ne 1 ]]; then
+  remaining+=("Buy+attach keptapp.ca → NEXT_PUBLIC_APP_URL → redeploy (parallel OK)")
+fi
+remaining+=("Stripe Dashboard Public details → Kept (Checkout header already forced in app)")
+
+echo "Remaining Marshall gates:"
+i=1
+for g in "${remaining[@]}"; do
+  printf '  %d. %s\n' "$i" "$g"
+  i=$((i + 1))
+done
 
 if [[ "$FAIL" -ne 0 ]]; then
   echo "Result: FAIL"
