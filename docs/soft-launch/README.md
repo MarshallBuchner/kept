@@ -19,6 +19,8 @@ Paste-ready assets for Kept TikTok soft posts + first paid test.
 
 One-pager: [`MORNING.md`](./MORNING.md) · Launcher: [`LAUNCH.html`](./LAUNCH.html) (or gated `/soft-launch?key=…`) · Domain: [`DOMAIN.md`](./DOMAIN.md) · Pixel: [`PIXEL.md`](./PIXEL.md) · Ads: [`ADS.md`](./ADS.md)
 
+**Before launch / spend:** run the hygiene sweep in [`../PRELAUNCH.md`](../PRELAUNCH.md) (public “internal” pages, ad URLs, leaks).
+
 After DNS, crop out `kept-eosin.vercel.app` and use `keptapp.ca` in captions.
 
 ## Captions
