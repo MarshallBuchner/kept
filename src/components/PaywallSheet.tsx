@@ -143,6 +143,7 @@ export function PaywallSheet({
           </button>
         ) : (
           <div className="mt-3 space-y-2">
+            <p className="text-[12px] text-muted">Apply it here — not on the Stripe checkout page.</p>
             <div className="flex gap-2">
               <input
                 type="text"
