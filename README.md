@@ -42,6 +42,21 @@ Without Stripe keys, set `ALLOW_DEMO_PRO=1` locally so **Upgrade to Pro** unlock
 
 **Owner lifetime unlock:** Settings → Promo code (or paywall → “Have a promo code?”) → enter `KEPT-OWNER`. That stores lifetime Pro on the device and skips the paywall. Override the code with `KEPT_LIFETIME_PROMO_CODE` on Vercel if you want to rotate it.
 
+### iOS (App Store / TestFlight)
+
+Native shell is Capacitor (`ios/`). Bundle ID **`ca.keptapp.app`**. On your Mac:
+
+```bash
+npm ci
+npm run cap:sync:ios
+npm run cap:open:ios
+```
+
+- Signing / Xcode: [`docs/ios/MAC.md`](docs/ios/MAC.md)
+- App Store Connect listing draft: [`docs/ios/APP_STORE.md`](docs/ios/APP_STORE.md)
+
+Custom domain is **frozen** — shell loads `https://kept-eosin.vercel.app` until you resume domain work.
+
 ### Funnel analytics events
 
 `scan_started` → `scan_completed` → `export_clicked` → `paywall_viewed` → `checkout_started` → `paid`
@@ -50,13 +65,10 @@ Events queue in `localStorage` and forward to `window.keptAnalytics` / `dataLaye
 
 ### Soft-launch checklist (Marshall morning playbook)
 
-**One-pager:** [`docs/soft-launch/MORNING.md`](docs/soft-launch/MORNING.md) · Domain: [`DOMAIN.md`](docs/soft-launch/DOMAIN.md) · Pixel: [`PIXEL.md`](docs/soft-launch/PIXEL.md) · Ads: [`ADS.md`](docs/soft-launch/ADS.md)
+**Status:** [`docs/soft-launch/STATUS.md`](docs/soft-launch/STATUS.md) — treated **complete for now**; **domain buy deferred** (no alerts).  
+**One-pager:** [`MORNING.md`](docs/soft-launch/MORNING.md) · Pixel: [`PIXEL.md`](docs/soft-launch/PIXEL.md) · Ads: [`ADS.md`](docs/soft-launch/ADS.md) · Domain (later): [`DOMAIN.md`](docs/soft-launch/DOMAIN.md)
 
-**Goal:** Pixel firing → 1 soft post → tiny paid test (on `kept-eosin.vercel.app` today) · custom domain live in parallel.
-
-Product stack **#25–#30 already on production** (`/privacy`, `/terms`, `/welcome`, Checkout header = Kept). Soft-launch only from `https://kept-eosin.vercel.app` or your new domain — never a `*-git-*.vercel.app` preview URL.
-
-RDAP still shows **available:** `keptapp.ca` (preferred), `keptscan.ca`.
+Production URL for ads / bio / App Store privacy links: **`https://kept-eosin.vercel.app`** (never a `*-git-*.vercel.app` preview).
 
 #### 1) TikTok Ads Manager + Pixel first (required to spend)
 
