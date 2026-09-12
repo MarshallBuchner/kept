@@ -42,6 +42,18 @@ Without Stripe keys, set `ALLOW_DEMO_PRO=1` locally so **Upgrade to Pro** unlock
 
 **Owner lifetime unlock:** Settings → Promo code (or paywall → “Have a promo code?”) → enter `KEPT-OWNER`. That stores lifetime Pro on the device and skips the paywall. Override the code with `KEPT_LIFETIME_PROMO_CODE` on Vercel if you want to rotate it.
 
+### iOS (App Store / TestFlight)
+
+Native shell is Capacitor (`ios/`). Bundle ID **`ca.keptapp.app`**. On your Mac:
+
+```bash
+npm ci
+npm run cap:sync:ios
+npm run cap:open:ios
+```
+
+Full signing + App Store Connect steps: [`docs/ios/MAC.md`](docs/ios/MAC.md). Soft-launch (domain + TikTok) can proceed in parallel on the web.
+
 ### Funnel analytics events
 
 `scan_started` → `scan_completed` → `export_clicked` → `paywall_viewed` → `checkout_started` → `paid`
