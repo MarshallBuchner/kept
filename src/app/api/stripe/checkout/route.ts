@@ -64,7 +64,8 @@ export async function POST(request: Request) {
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${appUrl}/settings?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/settings?checkout=cancel`,
-      allow_promotion_codes: true,
+      // Owner/staff codes (e.g. KEPT-OWNER) are redeemed in-app, not via Stripe.
+      allow_promotion_codes: false,
       // Override leftover Dashboard business name (e.g. CRYPTO/NFT) on hosted Checkout header.
       // Account Settings → Public details still needed for receipts / statements.
       branding_settings: {

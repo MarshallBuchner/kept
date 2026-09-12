@@ -2,6 +2,8 @@
 
 **Done when:** `keptapp.ca` HTTPS works · Pixel events show in TikTok · 1 soft post live · tiny ad delivering.
 
+**Status (2026-09-12):** Pixel **live** (`DAINOAJC77UDHLL3UCVG`) · Traffic ads **Under review** (4 ads, LPV, TikTok-only) on `https://kept-eosin.vercel.app/welcome` · Domain **not bought yet** (`keptapp.ca` still unresolved). Remaining: ads → Active + buy/attach domain.
+
 **Do not wait on the domain to start spending.** Pixel + soft post + Traffic ads can run today on production. Buy/attach the domain in parallel (or right after).
 
 **Launcher:** open [`/soft-launch`](https://kept-eosin.vercel.app/soft-launch) (or local [`LAUNCH.html`](./LAUNCH.html)) for one-tap deep links.

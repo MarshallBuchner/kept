@@ -7,7 +7,7 @@ import {
   FREE_SCANS_PER_MONTH,
   getUsage,
 } from "@/lib/billing";
-import { startProCheckout, type CheckoutPlan } from "@/lib/checkout";
+import { startProCheckout, redeemLifetimePromo, type CheckoutPlan } from "@/lib/checkout";
 
 export type PaywallReason = "scan_limit" | "export_limit" | "upgrade";
 
@@ -23,6 +23,9 @@ export function PaywallSheet({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [plan, setPlan] = useState<CheckoutPlan>("yearly");
+  const [showPromo, setShowPromo] = useState(false);
+  const [promoCode, setPromoCode] = useState("");
+  const [promoBusy, setPromoBusy] = useState(false);
   const usage = getUsage();
 
   useEffect(() => {
@@ -57,6 +60,19 @@ export function PaywallSheet({
       onUnlocked?.();
       onClose();
     }
+  }
+
+  async function applyPromo() {
+    setPromoBusy(true);
+    setError(null);
+    const result = await redeemLifetimePromo(promoCode);
+    setPromoBusy(false);
+    if (!result.ok) {
+      setError(result.message ?? "Invalid code.");
+      return;
+    }
+    onUnlocked?.();
+    onClose();
   }
 
   return (
@@ -116,6 +132,44 @@ export function PaywallSheet({
               ? "Upgrade · CA$19.99/yr"
               : "Upgrade · CA$2.99/mo"}
         </button>
+
+        {!showPromo ? (
+          <button
+            type="button"
+            onClick={() => setShowPromo(true)}
+            className="mt-2 w-full py-2 text-[13px] font-medium text-muted underline-offset-2 hover:underline"
+          >
+            Have a promo code?
+          </button>
+        ) : (
+          <div className="mt-3 space-y-2">
+            <p className="text-[12px] text-muted">Apply it here — not on the Stripe checkout page.</p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={promoCode}
+                onChange={(e) => setPromoCode(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void applyPromo();
+                }}
+                placeholder="Promo code"
+                autoCapitalize="characters"
+                autoCorrect="off"
+                spellCheck={false}
+                className="min-w-0 flex-1 rounded-[12px] bg-chip px-3 py-2.5 text-[14px] text-ink outline-none ring-1 ring-rule focus:ring-accent"
+              />
+              <button
+                type="button"
+                disabled={promoBusy || !promoCode.trim()}
+                onClick={() => void applyPromo()}
+                className="shrink-0 rounded-[12px] bg-ink px-3 py-2.5 text-[13px] font-semibold text-white disabled:opacity-50"
+              >
+                {promoBusy ? "…" : "Apply"}
+              </button>
+            </div>
+          </div>
+        )}
+
         <button
           type="button"
           onClick={onClose}

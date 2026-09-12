@@ -3,6 +3,33 @@ import { setPro } from "@/lib/billing";
 
 export type CheckoutPlan = "monthly" | "yearly";
 
+/** Redeem a server-validated lifetime promo (owner / staff). */
+export async function redeemLifetimePromo(
+  code: string,
+): Promise<{ ok: boolean; message?: string }> {
+  try {
+    const res = await fetch("/api/promo/redeem", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code }),
+    });
+    const data = (await res.json()) as {
+      ok?: boolean;
+      lifetime?: boolean;
+      source?: string;
+      error?: string;
+    };
+    if (!res.ok || !data.ok) {
+      return { ok: false, message: data.error ?? "Invalid promo code." };
+    }
+    setPro({ source: "promo" });
+    track("paid", { plan: "lifetime", source: "promo" });
+    return { ok: true, message: "lifetime" };
+  } catch {
+    return { ok: false, message: "Could not redeem code." };
+  }
+}
+
 export async function startProCheckout(
   plan: CheckoutPlan = "monthly",
 ): Promise<{ ok: boolean; message?: string }> {
