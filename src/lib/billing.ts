@@ -14,7 +14,7 @@ export type UsageSnapshot = {
 
 export type ProEntitlement = {
   active: boolean;
-  source: "stripe" | "demo" | "none";
+  source: "stripe" | "demo" | "promo" | "none";
   customerId?: string;
   sessionId?: string;
   activatedAt?: string;
@@ -219,8 +219,9 @@ export async function consumeExport(): Promise<{ allowed: boolean; usage: UsageS
   return { allowed: true, usage: recordExport() };
 }
 
-export function planLabel(): "Kept Pro" | "Free" {
-  return isPro() ? "Kept Pro" : "Free";
+export function planLabel(): "Kept Pro" | "Kept Pro · lifetime" | "Free" {
+  if (!isPro()) return "Free";
+  return getPro().source === "promo" ? "Kept Pro · lifetime" : "Kept Pro";
 }
 
 export function stripeConfigured(): boolean {
