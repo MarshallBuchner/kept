@@ -6,7 +6,7 @@
 
 **Do not wait on the domain to start spending.** Pixel + soft post + Traffic ads can run today on production. Buy/attach the domain in parallel (or right after).
 
-**Launcher:** open [`/soft-launch`](https://kept-eosin.vercel.app/soft-launch) (or local [`LAUNCH.html`](./LAUNCH.html)) for one-tap deep links.
+**Launcher:** local [`LAUNCH.html`](./LAUNCH.html) (preferred), or gated `/soft-launch?key=…` after you set `SOFT_LAUNCH_KEY` on Vercel. Bare `/soft-launch` 404s on purpose — it is not a public product page.
 
 ## 0. Product stack — done
 
