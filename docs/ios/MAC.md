@@ -7,10 +7,24 @@ Cloud agents can scaffold the Capacitor project; **only your Mac** can open Xcod
 - Capacitor config → `capacitor.config.ts`
 - Bundle ID: **`ca.keptapp.app`**
 - App name: **Kept**
+- Home-screen icon + launch splash: sage **Kept** mark (`public/brand/kept-icon-1024.png` → `ios/.../AppIcon` + `Splash`)
 - Shell loads production web: `https://kept-eosin.vercel.app`  
   (switch to `https://keptapp.ca` after DNS — set `CAPACITOR_SERVER_URL` or edit config, then re-sync)
 - Fallback page: `mobile/www/`
 - Native project: `ios/` (after first `npx cap add ios` / sync)
+
+### After pulling icon/splash updates
+
+iOS caches icons aggressively. On the Mac:
+
+```bash
+cd ~/Desktop/kept   # or your clone
+git pull
+npx cap sync ios
+npx cap open ios
+```
+
+Then delete the old **Kept** app from the iPhone → **Product → Clean Build Folder** → Run again (or Archive). You should see the green **K** on the Home Screen, not the blue Capacitor logo.
 
 ## One-time Mac setup
 
