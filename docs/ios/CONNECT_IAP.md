@@ -133,6 +133,16 @@ Same flow as monthly:
 
 ## 5) Mac rebuild (after products exist)
 
+One-shot (recommended):
+
+```bash
+cd ~/Desktop/kept
+git pull
+./scripts/ios-iap-sync.sh
+```
+
+Or manually:
+
 ```bash
 cd ~/Desktop/kept
 git checkout main
@@ -176,5 +186,11 @@ Product IDs: ca.keptapp.app.pro.monthly , ca.keptapp.app.pro.yearly
 Sandbox: use any Sandbox Apple ID; Restore Purchases is on the paywall.
 Support: keptscan@gmail.com
 Privacy: https://kept-eosin.vercel.app/privacy
+<<<<<<< HEAD
 Terms: https://kept-eosin.vercel.app/terms
 ```
+=======
+```
+
+Uncheck **Sign-in required** unless you added an account system.
+>>>>>>> 40353b8 (Add Mac ios-iap-sync helper script for StoreKit rebuilds.)
