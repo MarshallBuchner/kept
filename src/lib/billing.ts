@@ -14,7 +14,7 @@ export type UsageSnapshot = {
 
 export type ProEntitlement = {
   active: boolean;
-  source: "stripe" | "demo" | "promo" | "none";
+  source: "stripe" | "iap" | "demo" | "promo" | "none";
   customerId?: string;
   sessionId?: string;
   activatedAt?: string;

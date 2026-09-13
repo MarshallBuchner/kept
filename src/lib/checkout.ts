@@ -1,5 +1,7 @@
 import { track } from "@/lib/analytics";
 import { setPro } from "@/lib/billing";
+import { purchaseProIap } from "@/lib/iap";
+import { isNativeIOS } from "@/lib/platform";
 
 export type CheckoutPlan = "monthly" | "yearly";
 
@@ -30,9 +32,17 @@ export async function redeemLifetimePromo(
   }
 }
 
+/**
+ * Start Pro upgrade. On the native iOS shell this uses StoreKit only
+ * (Apple guideline 3.1.1). Web / PWA still uses Stripe Checkout.
+ */
 export async function startProCheckout(
   plan: CheckoutPlan = "monthly",
 ): Promise<{ ok: boolean; message?: string }> {
+  if (isNativeIOS()) {
+    return purchaseProIap(plan);
+  }
+
   track("checkout_started", { plan: plan === "yearly" ? "pro_yearly" : "pro_monthly" });
 
   try {

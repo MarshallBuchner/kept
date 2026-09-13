@@ -16,6 +16,7 @@
     "@capacitor/core": "^8.5.2",
     "@capacitor/splash-screen": "^8.0.2",
     "@capacitor/status-bar": "^8.0.3",
+    "@capgo/native-purchases": "^8.7.0",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
     "next": "16.3.4",
