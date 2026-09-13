@@ -13,7 +13,7 @@ export default function PrivacyPage() {
         ← Settings
       </Link>
       <h1 className="mt-6 text-[28px] font-bold tracking-tight">Privacy</h1>
-      <p className="mt-2 text-[13px] text-muted">Last updated: September 11, 2026</p>
+      <p className="mt-2 text-[13px] text-muted">Last updated: September 13, 2026</p>
 
       <div className="mt-8 space-y-6 text-[14px] leading-6 text-ink">
         <section>
@@ -28,9 +28,15 @@ export default function PrivacyPage() {
         <section>
           <h2 className="text-[16px] font-semibold">Payments</h2>
           <p className="mt-2 text-muted">
-            If you upgrade to Kept Pro, payment is handled by Stripe. Card details go to Stripe, not
-            Kept servers. Stripe may process your email and payment metadata under their privacy
-            policy.
+            <strong className="font-semibold text-ink">Website:</strong> If you upgrade to Kept Pro
+            on the web, payment is handled by Stripe. Card details go to Stripe, not Kept servers.
+            Stripe may process your email and payment metadata under their privacy policy.
+          </p>
+          <p className="mt-2 text-muted">
+            <strong className="font-semibold text-ink">iOS app:</strong> Kept Pro is purchased as an
+            App Store In-App Purchase. Apple processes the payment with your Apple ID. Kept does not
+            receive your card number. Purchase status may be stored on this device so Pro features
+            stay unlocked after restore.
           </p>
         </section>
 

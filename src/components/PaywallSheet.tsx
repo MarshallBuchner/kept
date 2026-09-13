@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { track } from "@/lib/analytics";
 import {
@@ -173,13 +174,6 @@ export function PaywallSheet({
           This month on Free: {usage.scans}/{FREE_SCANS_PER_MONTH} scans · {usage.exports}/
           {FREE_EXPORTS_PER_MONTH} exports
         </p>
-        {nativeIOS ? (
-          <p className="mt-2 text-[12px] text-muted">
-            Payment is charged to your Apple ID through the App Store. Web Stripe checkout is not used
-            in the iOS app.
-          </p>
-        ) : null}
-
         {error ? <p className="mt-3 text-[13px] text-danger">{error}</p> : null}
 
         <button
@@ -192,14 +186,30 @@ export function PaywallSheet({
         </button>
 
         {nativeIOS ? (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void restore()}
-            className="mt-2 w-full py-2 text-[13px] font-medium text-muted underline-offset-2 hover:underline disabled:opacity-50"
-          >
-            Restore purchases
-          </button>
+          <>
+            <p className="mt-3 text-[11px] leading-4 text-muted">
+              Kept Pro {plan === "yearly" ? "Yearly" : "Monthly"} is an auto-renewable subscription
+              ({plan === "yearly" ? `${yearlyPrice} / year` : `${monthlyPrice} / month`}). Payment is
+              charged to your Apple ID at confirmation. The subscription renews automatically unless
+              cancelled at least 24 hours before the period ends. Manage or cancel in Settings →
+              Apple ID → Subscriptions.{" "}
+              <Link href="/terms" className="text-accent underline-offset-2 hover:underline">
+                Terms
+              </Link>
+              {" · "}
+              <Link href="/privacy" className="text-accent underline-offset-2 hover:underline">
+                Privacy
+              </Link>
+            </p>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void restore()}
+              className="mt-2 w-full py-2 text-[13px] font-medium text-muted underline-offset-2 hover:underline disabled:opacity-50"
+            >
+              Restore purchases
+            </button>
+          </>
         ) : null}
 
         {!showPromo ? (
