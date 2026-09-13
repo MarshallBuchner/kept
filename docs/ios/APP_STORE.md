@@ -136,6 +136,9 @@ Also add localized subscription display name + description, and a Privacy Policy
 
 The iOS shell (`@capgo/native-purchases`) loads these IDs at runtime. Stripe Checkout remains for the **web** app only and is gated off inside Capacitor iOS.
 
+Step-by-step Connect + Sandbox + Archive: [`CONNECT_IAP.md`](./CONNECT_IAP.md).  
+Local Xcode StoreKit config: `ios/App/App/Products.storekit`.
+
 ---
 
 ## Ship order

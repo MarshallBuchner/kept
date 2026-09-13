@@ -68,10 +68,14 @@ Info.plist should include camera / photo library usage strings (receipt scanning
 | Web / PWA | Stripe Checkout |
 | Capacitor iOS (TestFlight + App Store) | **StoreKit IAP only** (Stripe gated off) |
 
+**Full click-path (Connect products + Sandbox + Archive):** [`CONNECT_IAP.md`](./CONNECT_IAP.md)
+
 Product IDs (must match App Store Connect):
 
 - `ca.keptapp.app.pro.monthly`
 - `ca.keptapp.app.pro.yearly`
+
+Local StoreKit file for Xcode testing: `ios/App/App/Products.storekit`
 
 After pulling IAP code on the Mac:
 
