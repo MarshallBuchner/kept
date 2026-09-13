@@ -69,6 +69,16 @@ Same as monthly, with:
 
 ## 5) Mac rebuild (after products exist)
 
+One-shot (recommended):
+
+```bash
+cd ~/Desktop/kept
+git pull
+./scripts/ios-iap-sync.sh
+```
+
+Or manually:
+
 ```bash
 cd ~/Desktop/kept
 git checkout main
@@ -99,3 +109,19 @@ Only after:
 Attach the IAP products to the iOS version when Connect asks.
 
 **Do not submit the old Stripe-only binary.**
+
+### App Review notes (paste into Connect → App Review Information)
+
+```
+Kept is a receipt/document scanner.
+Core flow: Home → Scan/Import → Crop → Extract → Save → Export PDF.
+Demo: import any receipt photo from Photos. No login required.
+Free tier: limited monthly scans/exports.
+Pro: unlock via Apple In-App Purchase (auto-renewable).
+Product IDs: ca.keptapp.app.pro.monthly , ca.keptapp.app.pro.yearly
+Sandbox: use any Sandbox Apple ID; Restore Purchases is on the paywall.
+Support: keptscan@gmail.com
+Privacy: https://kept-eosin.vercel.app/privacy
+```
+
+Uncheck **Sign-in required** unless you added an account system.
