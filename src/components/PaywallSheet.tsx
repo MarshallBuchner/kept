@@ -8,6 +8,8 @@ import {
   getUsage,
 } from "@/lib/billing";
 import { startProCheckout, redeemLifetimePromo, type CheckoutPlan } from "@/lib/checkout";
+import { loadIapProducts, restoreProIap, type IapProductInfo } from "@/lib/iap";
+import { isNativeIOS } from "@/lib/platform";
 
 export type PaywallReason = "scan_limit" | "export_limit" | "upgrade";
 
@@ -20,18 +22,47 @@ export function PaywallSheet({
   onClose: () => void;
   onUnlocked?: () => void;
 }) {
+  const nativeIOS = isNativeIOS();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [plan, setPlan] = useState<CheckoutPlan>("yearly");
   const [showPromo, setShowPromo] = useState(false);
   const [promoCode, setPromoCode] = useState("");
   const [promoBusy, setPromoBusy] = useState(false);
+  const [iapProducts, setIapProducts] = useState<IapProductInfo[]>([]);
+  const [iapLoading, setIapLoading] = useState(nativeIOS);
   const usage = getUsage();
 
   useEffect(() => {
-    track("paywall_viewed", { reason, scans: usage.scans, exports: usage.exports });
+    track("paywall_viewed", {
+      reason,
+      scans: usage.scans,
+      exports: usage.exports,
+      rail: nativeIOS ? "iap" : "stripe",
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fire once per open
   }, [reason]);
+
+  useEffect(() => {
+    if (!nativeIOS) return;
+    let cancelled = false;
+    void (async () => {
+      setIapLoading(true);
+      const result = await loadIapProducts();
+      if (cancelled) return;
+      setIapLoading(false);
+      if (!result.ok) {
+        setError(result.message ?? "Could not load App Store prices.");
+        return;
+      }
+      setIapProducts(result.products);
+      if (result.products.some((p) => p.plan === "yearly")) setPlan("yearly");
+      else if (result.products[0]) setPlan(result.products[0].plan);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [nativeIOS]);
 
   const headline =
     reason === "scan_limit"
@@ -47,6 +78,11 @@ export function PaywallSheet({
         ? `Free includes ${FREE_EXPORTS_PER_MONTH} PDF export / month. Pro unlocks unlimited exports.`
         : "Unlimited scans, unlimited PDF exports, and the full Kept toolkit.";
 
+  function priceFor(planChoice: CheckoutPlan, fallback: string): string {
+    const fromStore = iapProducts.find((p) => p.plan === planChoice)?.priceString;
+    return fromStore || fallback;
+  }
+
   async function upgrade() {
     setBusy(true);
     setError(null);
@@ -56,10 +92,24 @@ export function PaywallSheet({
       setError(result.message ?? "Checkout failed.");
       return;
     }
-    if (result.message === "demo") {
+    // Stripe redirects away; demo + IAP unlock in-place.
+    if (result.message === "demo" || result.message === "iap") {
       onUnlocked?.();
       onClose();
     }
+  }
+
+  async function restore() {
+    setBusy(true);
+    setError(null);
+    const result = await restoreProIap();
+    setBusy(false);
+    if (!result.ok) {
+      setError(result.message ?? "Restore failed.");
+      return;
+    }
+    onUnlocked?.();
+    onClose();
   }
 
   async function applyPromo() {
@@ -74,6 +124,12 @@ export function PaywallSheet({
     onUnlocked?.();
     onClose();
   }
+
+  const yearlyPrice = priceFor("yearly", "CA$19.99");
+  const monthlyPrice = priceFor("monthly", "CA$2.99");
+  const ctaBusyLabel = nativeIOS ? "Contacting App Store…" : "Starting checkout…";
+  const ctaLabel =
+    plan === "yearly" ? `Upgrade · ${yearlyPrice}/yr` : `Upgrade · ${monthlyPrice}/mo`;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center bg-ink/40 print:hidden">
@@ -99,14 +155,14 @@ export function PaywallSheet({
         <div className="mt-4 grid grid-cols-2 gap-2">
           <PlanChoice
             title="Yearly"
-            price="CA$19.99"
-            detail="Best value · ~CA$1.67/mo"
+            price={iapLoading ? "…" : yearlyPrice}
+            detail="Best value · billed yearly"
             selected={plan === "yearly"}
             onSelect={() => setPlan("yearly")}
           />
           <PlanChoice
             title="Monthly"
-            price="CA$2.99"
+            price={iapLoading ? "…" : monthlyPrice}
             detail="Billed every month"
             selected={plan === "monthly"}
             onSelect={() => setPlan("monthly")}
@@ -117,21 +173,34 @@ export function PaywallSheet({
           This month on Free: {usage.scans}/{FREE_SCANS_PER_MONTH} scans · {usage.exports}/
           {FREE_EXPORTS_PER_MONTH} exports
         </p>
+        {nativeIOS ? (
+          <p className="mt-2 text-[12px] text-muted">
+            Payment is charged to your Apple ID through the App Store. Web Stripe checkout is not used
+            in the iOS app.
+          </p>
+        ) : null}
 
         {error ? <p className="mt-3 text-[13px] text-danger">{error}</p> : null}
 
         <button
           type="button"
-          disabled={busy}
+          disabled={busy || iapLoading}
           onClick={() => void upgrade()}
           className="mt-4 w-full rounded-[16px] bg-accent px-4 py-[15px] text-[16px] font-semibold text-white disabled:opacity-60"
         >
-          {busy
-            ? "Starting checkout…"
-            : plan === "yearly"
-              ? "Upgrade · CA$19.99/yr"
-              : "Upgrade · CA$2.99/mo"}
+          {busy ? ctaBusyLabel : ctaLabel}
         </button>
+
+        {nativeIOS ? (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void restore()}
+            className="mt-2 w-full py-2 text-[13px] font-medium text-muted underline-offset-2 hover:underline disabled:opacity-50"
+          >
+            Restore purchases
+          </button>
+        ) : null}
 
         {!showPromo ? (
           <button
@@ -143,7 +212,11 @@ export function PaywallSheet({
           </button>
         ) : (
           <div className="mt-3 space-y-2">
-            <p className="text-[12px] text-muted">Apply it here — not on the Stripe checkout page.</p>
+            <p className="text-[12px] text-muted">
+              {nativeIOS
+                ? "Owner / staff lifetime codes apply here in Kept."
+                : "Apply it here — not on the Stripe checkout page."}
+            </p>
             <div className="flex gap-2">
               <input
                 type="text"

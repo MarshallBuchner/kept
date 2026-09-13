@@ -19,7 +19,7 @@ Native shell: Capacitor · Bundle ID **`ca.keptapp.app`** · Mac steps: [`MAC.md
 | Primary language | English (Canada) |
 | Category | Productivity (primary) · Finance (secondary, optional) |
 | Age rating | 4+ (no unrestricted web, no violence) — confirm in questionnaire |
-| Price | Free (Pro via IAP later; Stripe OK for internal TestFlight only) |
+| Price | Free (Pro via App Store IAP: `ca.keptapp.app.pro.monthly` / `ca.keptapp.app.pro.yearly`) |
 
 ---
 
@@ -116,21 +116,35 @@ Typical answer: **exempt** (no custom encryption).
 ```
 Kept is a receipt/document scanner. Core flow: Welcome → scan/import → clean → export PDF.
 Demo: use any sample receipt photo from the library.
-Free tier has monthly scan/export limits; Pro unlock is currently web Stripe for TestFlight —
-public release will use Apple IAP (in progress).
+Free tier has monthly scan/export limits; Pro unlocks via Apple In-App Purchase (StoreKit).
 Support: keptscan@gmail.com
 Privacy: https://kept-eosin.vercel.app/privacy
 ```
 
 ---
 
+## In-App Purchases (required before Submit for Review)
+
+Create an Auto-Renewable Subscription group **Kept Pro** in App Store Connect:
+
+| Product ID | Reference name | Duration | Price (CA suggested) |
+| --- | --- | --- | --- |
+| `ca.keptapp.app.pro.monthly` | Kept Pro Monthly | 1 month | CA$2.99 |
+| `ca.keptapp.app.pro.yearly` | Kept Pro Yearly | 1 year | CA$19.99 |
+
+Also add localized subscription display name + description, and a Privacy Policy URL on the subscription group.
+
+The iOS shell (`@capgo/native-purchases`) loads these IDs at runtime. Stripe Checkout remains for the **web** app only and is gated off inside Capacitor iOS.
+
+---
+
 ## Ship order
 
-1. Merge Capacitor PR → Mac: `npm ci && npm run cap:sync:ios && npm run cap:open:ios`  
-2. Sign with your Team → Run on device  
-3. Create App Store Connect record (table above)  
-4. Archive → Upload → **TestFlight internal**  
+1. Merge Capacitor / IAP PR → deploy web to Vercel (shell loads prod URL)  
+2. Mac: `npm ci && npx cap sync ios && npx cap open ios`  
+3. Xcode → Signing & Capabilities → add **In-App Purchase**  
+4. Archive → Upload → TestFlight (Sandbox Apple ID to buy)  
 5. Fill metadata + screenshots  
-6. Before **Submit for Review**: StoreKit IAP for Pro (or approved external-link path)
+6. **Submit for Review** only after IAP products are Ready to Submit
 
 Domain purchase is **not** blocking this path.

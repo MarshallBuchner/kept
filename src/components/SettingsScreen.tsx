@@ -17,6 +17,7 @@ import {
   refreshUsageFromServer,
 } from "@/lib/billing";
 import { confirmCheckoutSession, redeemLifetimePromo } from "@/lib/checkout";
+import { isNativeIOS } from "@/lib/platform";
 import { loadDocs, saveDocs } from "@/lib/storage";
 
 export function SettingsScreen() {
@@ -141,7 +142,9 @@ export function SettingsScreen() {
               Promo code
             </p>
             <p className="mt-1 text-[12px] text-muted">
-              Apply here in Kept — Stripe checkout won’t accept this code.
+              {isNativeIOS()
+                ? "Owner / staff lifetime codes apply here in Kept."
+                : "Apply here in Kept — Stripe checkout won’t accept this code."}
             </p>
             <div className="mt-2 flex gap-2">
               <input
@@ -219,8 +222,11 @@ export function SettingsScreen() {
       <section className="rounded-[18px] bg-card p-5 ring-1 ring-rule">
         <h2 className="text-[15px] font-semibold">Privacy</h2>
         <p className="mt-2 text-[14px] leading-6 text-muted">
-          Photos and extracted text stay on this device. Payments go through Stripe. Hosted analytics
-          / ad pixels may measure visits and upgrades — details in Privacy.
+          Photos and extracted text stay on this device.{" "}
+          {isNativeIOS()
+            ? "Pro upgrades are billed through your Apple ID (App Store). "
+            : "Payments go through Stripe. "}
+          Hosted analytics / ad pixels may measure visits and upgrades — details in Privacy.
         </p>
         <div className="mt-4 flex gap-4 text-[14px] font-medium">
           <Link href="/privacy" className="text-accent">

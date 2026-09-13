@@ -15,12 +15,11 @@ const config: CapacitorConfig = {
   server: {
     url: PROD_URL,
     cleartext: false,
+    // Stripe Checkout domains are web-only; the iOS shell uses StoreKit.
     allowNavigation: [
       "kept-eosin.vercel.app",
       "keptapp.ca",
       "*.keptapp.ca",
-      "checkout.stripe.com",
-      "js.stripe.com",
     ],
   },
   plugins: {

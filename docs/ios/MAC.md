@@ -63,14 +63,31 @@ Info.plist should include camera / photo library usage strings (receipt scanning
 
 ## Payments (important before App Review)
 
-Kept Pro today uses **Stripe Checkout** on the web. For App Store **public** release, Apple usually requires **In‑App Purchase** for digital unlocks.
+| Stage | Payment rail |
+|-------|----------------|
+| Web / PWA | Stripe Checkout |
+| Capacitor iOS (TestFlight + App Store) | **StoreKit IAP only** (Stripe gated off) |
 
-| Stage | OK? |
-|-------|-----|
-| Local / TestFlight internal | Stripe web is fine for your own testing |
-| App Review / public App Store | Plan StoreKit IAP (or external-link rules if eligible) — don’t ship Stripe-only without a review strategy |
+Product IDs (must match App Store Connect):
 
-Owner promo `KEPT-OWNER` remains Settings / paywall in-app (not Stripe).
+- `ca.keptapp.app.pro.monthly`
+- `ca.keptapp.app.pro.yearly`
+
+After pulling IAP code on the Mac:
+
+```bash
+cd ~/Desktop/kept   # or your clone
+git pull
+npm ci
+npx cap sync ios
+npx cap open ios
+```
+
+In Xcode: target **App** → **Signing & Capabilities** → **+ Capability** → **In-App Purchase**.
+
+Test with a Sandbox Apple ID (Settings → App Store → Sandbox Account). Use **Restore purchases** on the paywall if needed.
+
+Owner promo `KEPT-OWNER` remains Settings / paywall in-app (not Stripe, not IAP).
 
 ## Soft-launch vs App Store
 
