@@ -14,7 +14,7 @@ App record: **Kept Scan** (or **Kept**)
 - [ ] Subscription group **Kept Pro** + 2 products (price + localization + review screenshot)
 - [ ] Group localization + Privacy Policy URL
 - [ ] Sandbox tester created
-- [ ] Archive build **4+** → TestFlight
+- [ ] Archive build **5+** → TestFlight
 - [ ] Sandbox purchase (Apple sheet, not Stripe)
 - [ ] Submit for Review (attach IAP products)
 
