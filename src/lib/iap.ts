@@ -1,6 +1,6 @@
 import { NativePurchases, PURCHASE_TYPE } from "@capgo/native-purchases";
 import { track } from "@/lib/analytics";
-import { setPro } from "@/lib/billing";
+import { clearPro, getPro, setPro } from "@/lib/billing";
 import type { CheckoutPlan } from "@/lib/checkout";
 import { isNativeIOS } from "@/lib/platform";
 
@@ -183,5 +183,35 @@ export async function manageProSubscriptions(): Promise<{ ok: boolean; message?:
     const message =
       err instanceof Error ? err.message : "Could not open subscription settings.";
     return { ok: false, message };
+  }
+}
+
+/**
+ * Quiet StoreKit entitlement sync for native iOS.
+ * Unlocks Pro when an active Kept subscription exists; clears IAP Pro when none.
+ * Does not call restorePurchases (no Apple sheet).
+ */
+export async function syncProFromStoreKit(): Promise<void> {
+  if (!isNativeIOS()) return;
+
+  try {
+    const { purchases } = await NativePurchases.getPurchases({
+      productType: PURCHASE_TYPE.SUBS,
+      onlyCurrentEntitlements: true,
+    });
+
+    const kept = purchases.find((p) => planForProductId(p.productIdentifier));
+    if (kept) {
+      const plan = planForProductId(kept.productIdentifier) ?? "yearly";
+      unlockFromIap(plan, kept.transactionId);
+      return;
+    }
+
+    const pro = getPro();
+    if (pro.active && pro.source === "iap") {
+      clearPro();
+    }
+  } catch {
+    // Ignore StoreKit sync failures — Restore remains available on paywall/settings.
   }
 }

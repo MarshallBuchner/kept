@@ -424,13 +424,13 @@ async function ensureReviewScreenshot(token, subscriptionId) {
   });
 
   const shotId = created.data.id;
-  const uploadOperations =
-    created.data.attributes?.uploadOperations ||
-    created.included?.find((i) => i.type === "uploadOperations") ||
-    [];
-
   // Prefer attributes.uploadOperations (ASC returns them on create)
   const ops = created.data.attributes?.uploadOperations ?? [];
+  if (!Array.isArray(ops) || ops.length === 0) {
+    throw new Error(
+      `review screenshot create returned no uploadOperations (id=${shotId}). Retry or upload in Connect UI.`,
+    );
+  }
   await uploadBinary(ops, bytes);
 
   await asc(token, "PATCH", `/v1/subscriptionAppStoreReviewScreenshots/${shotId}`, {
@@ -497,10 +497,12 @@ async function main() {
 
   console.log(`\nDone.
 Still required in App Store Connect / on device:
-  1. Paid Apps agreement Active (Business → Agreements)
-  2. Sandbox tester (Users and Access → Sandbox)
-  3. Confirm storefront price equalizations if needed
-  4. Archive build 5+ → TestFlight sandbox buy (Apple sheet) → Submit with IAP
+  1. Subscription group Privacy Policy URL = ${PRIVACY_URL} (Connect UI on Kept Pro group)
+  2. Paid Apps agreement Active (Business → Agreements)
+  3. Sandbox tester (Users and Access → Sandbox)
+  4. Confirm storefront price equalizations if needed
+  5. Xcode: confirm In-App Purchase capability → Archive build 5+ → TestFlight
+  6. Sandbox buy (Apple sheet, not Stripe) + Restore → Submit with IAP
 `);
 }
 

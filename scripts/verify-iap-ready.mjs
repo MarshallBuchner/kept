@@ -99,6 +99,15 @@ if (
 } else {
   fail("manage-subscription", "manageProSubscriptions not wired");
 }
+if (
+  iap.includes("syncProFromStoreKit") &&
+  exists("src/components/IapEntitlementSync.tsx") &&
+  read("src/app/layout.tsx").includes("IapEntitlementSync")
+) {
+  ok("iap-entitlement-sync", "launch sync wired");
+} else {
+  fail("iap-entitlement-sync", "syncProFromStoreKit / IapEntitlementSync missing");
+}
 
 // --- Capgo StoreKit API surface used by iap.ts ---
 for (const method of [

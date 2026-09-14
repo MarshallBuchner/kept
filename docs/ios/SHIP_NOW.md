@@ -3,11 +3,12 @@
 Status on code/main (already done):
 - Xcode Cloud **Archive - iOS** green on `main`
 - Native shell: TikTok Pixel off; Settings Restore + Manage subscription; no clear-Pro for IAP
+- StoreKit entitlement sync on launch (IAP Pro clears when Apple says expired)
 
 - Web IAP + Stripe gated off in native shell (live on `https://kept-eosin.vercel.app`)
 - Terms/Privacy mention App Store billing
 - Paywall Apple auto-renew disclosure + Restore
-- Capgo Native Purchases + In-App Purchase capability
+- Capgo Native Purchases wired (confirm **In-App Purchase** capability in Xcode before Archive)
 - iOS build **5** (Xcode Cloud auto-bumps via `CI_BUILD_NUMBER`) (`CURRENT_PROJECT_VERSION`)
 - Review screenshot: `docs/ios/screenshots/iap-review-paywall.png` (1290×2796)
 
@@ -65,7 +66,12 @@ export ASC_PRIVATE_KEY_PATH="$HOME/AuthKey_XXX.p8"
 npm run ios:iap:asc
 ```
 
-Either path creates/updates monthly+yearly, localizations, CAN price, **review screenshots**, review notes, group name, and app privacy URL.
+Either path creates/updates monthly+yearly, localizations, CAN price, **review screenshots**, review notes, group display name, and **app** privacy URL.
+
+Still finish in Connect UI after API/UI create:
+- Subscription group **Privacy Policy URL** (`https://kept-eosin.vercel.app/privacy`)
+- Paid Apps Active + sandbox tester
+- Xcode **In-App Purchase** capability confirmed before Archive
 
 Still finish Paid Apps + sandbox after.
 

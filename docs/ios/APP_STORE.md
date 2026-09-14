@@ -91,15 +91,15 @@ Save under `docs/ios/screenshots/` (git-lfs optional) or keep local until upload
 
 ## Privacy Nutrition Labels (App Privacy)
 
-Declare based on current Kept behavior (device-first + App Store IAP in the iOS shell; Stripe + TikTok Pixel on the website):
+Declare based on current Kept behavior (device-first + App Store IAP in the iOS shell; Stripe + TikTok Pixel on the **website only**):
 
 | Data type | Used for | Linked to identity? | Tracking? |
 | --- | --- | --- | --- |
 | Photos / Camera (user content) | App functionality | No | No |
-| Product interaction / usage (if analytics fire) | Analytics | No (unless you later add accounts) | Yes if TikTok Pixel used for ads attribution |
+| Product interaction / usage (if analytics fire) | Analytics | No (unless you later add accounts) | No in the native iOS shell (TikTok Pixel is disabled there) |
 | Purchases (App Store / Apple ID) | App functionality | Yes (via Apple; Kept does not collect card numbers) | No |
 
-**Tracking:** If the iOS shell loads the production site with TikTok Pixel, answer the tracking questionnaire honestly (ATT may apply). For TestFlight-only internal builds you can still ship; for public release decide: keep pixel + ATT prompt, or disable pixel inside native wrapper later.
+**Tracking:** The Capacitor iOS shell disables TikTok Pixel / attribution capture (`isNativeIOS()`). For the App Store build, answer the tracking questionnaire for the **native app** (typically no tracking). The marketing website may still use TikTok Pixel separately.
 
 ---
 
