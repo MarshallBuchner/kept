@@ -10,7 +10,8 @@
     "cap:sync": "npx cap sync",
     "cap:sync:ios": "npx cap sync ios",
     "cap:open:ios": "npx cap open ios",
-    "ios:iap:sync": "./scripts/ios-iap-sync.sh"
+    "ios:iap:sync": "./scripts/ios-iap-sync.sh",
+    "ios:iap:asc": "node scripts/asc-upsert-iap.mjs"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.1",
