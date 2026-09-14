@@ -14,28 +14,30 @@ if [[ -f scripts/verify-iap-ready.mjs ]]; then
 fi
 
 cat <<'EOF'
-1) Merge PR #65 (ios:iap:verify + IAP capability + privacy manifest)
-   https://github.com/MarshallBuchner/kept/pull/65
-
-2) App Store Connect API → GitHub secrets (then merge or Run workflow)
+1) App Store Connect API → GitHub secrets (can do BEFORE merge — ASC workflow is already on main)
    Settings → Secrets → Actions:
      ASC_ISSUER_ID
      ASC_KEY_ID
      ASC_PRIVATE_KEY   (full .p8 PEM)
-   After secrets exist: merge PR #65 to main → ASC upsert auto-runs
-   Or Actions → ASC upsert Kept Pro IAP → Run workflow
-   Or Connect UI: monthly+yearly + review screenshot + group Privacy URL
+   Then either:
+     a) Actions → ASC upsert Kept Pro IAP → Run workflow  (works on main today)
+     b) Merge PR #65 → upsert auto-runs on main (preferred; newer equalizations/screenshot gates)
+     c) Connect UI: monthly+yearly + review screenshot + group Privacy URL
    Product IDs (exact):
      ca.keptapp.app.pro.monthly
      ca.keptapp.app.pro.yearly
    Keep both at subscription level 1. Group Privacy:
      https://kept-eosin.vercel.app/privacy
 
+2) Merge PR #65 (IAP capability in Xcode project + hardened StoreKit sync + verify gate)
+   https://github.com/MarshallBuchner/kept/pull/65
+   Needed before Archive/TestFlight so the binary has In-App Purchase + quiet entitlement sync.
+
 3) Business → Agreements → Paid Apps = Active (tax + banking)
 
 4) Users and Access → Sandbox → Testers → create tester
 
-5) TestFlight build (prefer Xcode Cloud)
+5) TestFlight build (prefer Xcode Cloud) — after #65 is on main
    App Store Connect → Xcode Cloud → Archive workflow on main
    → Post-Actions → Deploy to TestFlight (enable if missing)
    Else Mac:

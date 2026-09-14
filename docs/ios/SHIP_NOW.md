@@ -56,8 +56,9 @@ Product IDs (must match code exactly):
    - `ASC_ISSUER_ID`
    - `ASC_KEY_ID`
    - `ASC_PRIVATE_KEY` (full `.p8` PEM text)
-3. Merge this IAP PR to `main` — ASC upsert **auto-runs** when secrets are present  
-   (or **Actions → ASC upsert Kept Pro IAP → Run workflow** anytime)
+3. **Actions → ASC upsert Kept Pro IAP → Run workflow** (works on `main` today)  
+   After this PR merges, the same workflow also **auto-runs** on relevant pushes to `main` when secrets exist.
+4. Still merge this PR before Archive/TestFlight (adds In-App Purchase capability + hardened StoreKit sync).
 
 ### Option 2 — local Mac
 
