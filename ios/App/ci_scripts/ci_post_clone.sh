@@ -31,6 +31,17 @@ npm ci
 # Ensure Capacitor iOS package metadata is synced (idempotent with committed ios/)
 npx cap sync ios
 
+
+# Xcode Cloud often has "resolved file required" when auto-resolve is off.
+# Generate/update Package.resolved after node_modules exist.
+if command -v xcodebuild >/dev/null 2>&1; then
+  echo "Resolving Swift packages…"
+  xcodebuild -project ios/App/App.xcodeproj \
+    -scheme App \
+    -resolvePackageDependencies \
+    -clonedSourcePackagesDirPath "$ROOT/ios/App/SourcePackages" || true
+fi
+
 echo "OK: node_modules ready for CapApp-SPM"
 ls -d node_modules/@capacitor/app \
       node_modules/@capacitor/splash-screen \
