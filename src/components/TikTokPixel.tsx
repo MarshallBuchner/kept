@@ -1,6 +1,8 @@
 "use client";
 
 import Script from "next/script";
+import { useEffect, useState } from "react";
+import { isNativeIOS } from "@/lib/platform";
 
 declare global {
   interface Window {
@@ -22,7 +24,14 @@ declare global {
  */
 export function TikTokPixel() {
   const pixelId = process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID?.trim();
-  if (!pixelId) return null;
+  const [allow, setAllow] = useState(false);
+
+  useEffect(() => {
+    // Avoid ATT / tracking issues inside the Capacitor iOS shell.
+    setAllow(!isNativeIOS());
+  }, []);
+
+  if (!pixelId || !allow) return null;
 
   return (
     <Script
