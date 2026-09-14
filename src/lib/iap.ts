@@ -230,6 +230,9 @@ export async function manageProSubscriptions(): Promise<{ ok: boolean; message?:
   }
 }
 
+/** Consecutive empty entitlement reads — avoid clearing Pro on a single flaky StoreKit read. */
+let emptyEntitlementStreak = 0;
+
 /**
  * Quiet StoreKit entitlement sync for native iOS.
  * Unlocks Pro when an active Kept subscription exists; clears IAP Pro when none.
@@ -239,23 +242,78 @@ export async function syncProFromStoreKit(): Promise<void> {
   if (!isNativeIOS()) return;
 
   try {
-    const { purchases } = await NativePurchases.getPurchases({
-      productType: PURCHASE_TYPE.SUBS,
-      onlyCurrentEntitlements: true,
-    });
+    const read = async () =>
+      NativePurchases.getPurchases({
+        productType: PURCHASE_TYPE.SUBS,
+        onlyCurrentEntitlements: true,
+      });
 
-    const kept = findActiveKeptEntitlement(purchases);
-    if (kept) {
-      const plan = planForProductId(kept.productIdentifier) ?? "yearly";
-      unlockFromIap(plan, kept.transactionId, { trackPaid: false });
+    let { purchases } = await read();
+    // Capgo can omit unverified txs — retry once before treating as empty.
+    if (purchases.length === 0) {
+      await new Promise((r) => setTimeout(r, 250));
+      ({ purchases } = await read());
+    }
+
+    const keptActive = findActiveKeptEntitlement(purchases);
+    if (keptActive) {
+      emptyEntitlementStreak = 0;
+      const plan = planForProductId(keptActive.productIdentifier) ?? "yearly";
+      unlockFromIap(plan, keptActive.transactionId, { trackPaid: false });
       return;
     }
 
-    const pro = getPro();
-    if (pro.active && pro.source === "iap") {
-      clearPro();
+    // Explicit inactive Kept entitlement → clear immediately.
+    const keptInactive = purchases.find((p) => {
+      if (!planForProductId(p.productIdentifier)) return false;
+      return p.isActive === false;
+    });
+    if (keptInactive) {
+      emptyEntitlementStreak = 0;
+      const pro = getPro();
+      if (pro.active && pro.source === "iap") clearPro();
+      return;
     }
+
+    if (purchases.length === 0) {
+      emptyEntitlementStreak += 1;
+      // Require two consecutive empties so a single bad read can't wipe a sandbox/Review buy.
+      if (emptyEntitlementStreak < 2) return;
+      const pro = getPro();
+      if (pro.active && pro.source === "iap") clearPro();
+      return;
+    }
+
+    // Non-empty list with no Kept products — leave non-IAP Pro alone; clear IAP Pro.
+    emptyEntitlementStreak = 0;
+    const pro = getPro();
+    if (pro.active && pro.source === "iap") clearPro();
   } catch {
     // Ignore StoreKit sync failures — Restore remains available on paywall/settings.
   }
+}
+
+/**
+ * Apply a StoreKit Transaction.updates event when it is a Kept Pro product.
+ * Falls back to a full quiet sync for other updates.
+ */
+export async function handleStoreKitTransactionUpdate(transaction: {
+  productIdentifier?: string;
+  transactionId?: string;
+  isActive?: boolean;
+}): Promise<void> {
+  if (!isNativeIOS()) return;
+  const id = transaction.productIdentifier;
+  if (!id || !planForProductId(id)) {
+    await syncProFromStoreKit();
+    return;
+  }
+  if (transaction.isActive === false) {
+    const pro = getPro();
+    if (pro.active && pro.source === "iap") clearPro();
+    return;
+  }
+  const plan = planForProductId(id) ?? "yearly";
+  unlockFromIap(plan, transaction.transactionId, { trackPaid: false });
+  emptyEntitlementStreak = 0;
 }

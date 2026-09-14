@@ -274,51 +274,52 @@ async function postSubscriptionPrice(token, subscriptionId, pricePointId) {
 /**
  * Apply Apple’s equalized (prefer adjusted) price points for every storefront.
  * Needed so sandbox / Review outside CAN can buy without manual “Add all equalizations”.
+ * @returns {{ ok: boolean, reason?: string }}
  */
 async function ensureEqualizedPrices(token, subscriptionId, basePricePointId) {
-  let path =
-    `/v1/subscriptionPricePoints/${basePricePointId}/adjustedEqualizations` +
-    `?limit=200&include=territory`;
-  let eqs = [];
-  let used = "adjustedEqualizations";
-  try {
+  async function fetchEqs(kind) {
+    let path =
+      `/v1/subscriptionPricePoints/${basePricePointId}/${kind}` +
+      `?limit=200&include=territory`;
+    const eqs = [];
     while (path) {
       const page = await asc(token, "GET", path);
-      eqs = eqs.concat(page.data ?? []);
+      eqs.push(...(page.data ?? []));
       const next = page.links?.next;
       path = next ? next.replace("https://api.appstoreconnect.apple.com", "") : null;
     }
+    return eqs;
+  }
+
+  let used = "adjustedEqualizations";
+  let eqs = [];
+  try {
+    eqs = await fetchEqs("adjustedEqualizations");
   } catch (err) {
     console.warn(
       `  WARN: adjustedEqualizations failed (${err.message}); trying equalizations…`,
     );
+  }
+
+  if (eqs.length === 0) {
     used = "equalizations";
-    path =
-      `/v1/subscriptionPricePoints/${basePricePointId}/equalizations` +
-      `?limit=200&include=territory`;
-    eqs = [];
     try {
-      while (path) {
-        const page = await asc(token, "GET", path);
-        eqs = eqs.concat(page.data ?? []);
-        const next = page.links?.next;
-        path = next ? next.replace("https://api.appstoreconnect.apple.com", "") : null;
-      }
+      eqs = await fetchEqs("equalizations");
     } catch (err2) {
       console.warn(
-        `  WARN: could not list ${used} (${err2.message}). Add equalizations in Connect UI.`,
+        `  WARN: could not list equalizations (${err2.message}). Add equalizations in Connect UI.`,
       );
-      return;
+      return { ok: false, reason: `equalizations list failed: ${err2.message}` };
     }
   }
 
   if (eqs.length === 0) {
     console.warn("  WARN: no equalizations returned — set other storefront prices in Connect UI");
-    return;
+    return { ok: false, reason: "no equalizations returned" };
   }
 
   console.log(`  equalizations (${used}): ${eqs.length} storefront price points`);
-  if (DRY) return;
+  if (DRY) return { ok: true };
 
   const have = await listCurrentPricePointIds(token, subscriptionId);
   let added = 0;
@@ -346,10 +347,18 @@ async function ensureEqualizedPrices(token, subscriptionId, basePricePointId) {
   console.log(
     `  equalizations applied: +${added}, already ${skipped}, failed ${failed}`,
   );
+  // Allow a few transient conflicts; fail if many storefronts couldn't be priced.
+  if (failed > 5 && failed > eqs.length * 0.1) {
+    return {
+      ok: false,
+      reason: `too many equalization failures (${failed}/${eqs.length})`,
+    };
+  }
+  return { ok: true };
 }
 
 async function ensurePrice(token, subscriptionId, product) {
-  if (!subscriptionId) return;
+  if (!subscriptionId) return { ok: false, reason: "missing subscription id" };
   console.log(
     `  price: looking up ${BASE_TERRITORY} ≈ ${product.customerPrice}…`,
   );
@@ -382,7 +391,10 @@ async function ensurePrice(token, subscriptionId, product) {
     console.warn(
       `  WARN: no ${BASE_TERRITORY} price point for ${product.customerPrice}. Set price in Connect UI.`,
     );
-    return;
+    return {
+      ok: false,
+      reason: `no ${BASE_TERRITORY} price point for ${product.customerPrice}`,
+    };
   }
 
   console.log(
@@ -390,7 +402,7 @@ async function ensurePrice(token, subscriptionId, product) {
   );
   if (DRY) {
     console.log("  (dry-run) skip base price + equalizations");
-    return;
+    return { ok: true };
   }
 
   const have = await listCurrentPricePointIds(token, subscriptionId);
@@ -401,7 +413,7 @@ async function ensurePrice(token, subscriptionId, product) {
     console.log(`  set ${BASE_TERRITORY} price`);
   }
 
-  await ensureEqualizedPrices(token, subscriptionId, match.id);
+  return ensureEqualizedPrices(token, subscriptionId, match.id);
 }
 
 async function ensureGroupLocalizations(token) {
@@ -600,14 +612,15 @@ async function listAllTerritories(token) {
 /**
  * Ensure the subscription is available in all storefronts (incl. new territories).
  * Without this, API-created products can stay unavailable for sandbox buys.
+ * @returns {{ ok: boolean, reason?: string }}
  */
 async function ensureAvailability(token, subscriptionId) {
-  if (!subscriptionId) return;
+  if (!subscriptionId) return { ok: false, reason: "missing subscription id" };
 
   const territories = await listAllTerritories(token);
   if (territories.length === 0) {
     console.warn("  WARN: no territories returned — set Availability in Connect UI");
-    return;
+    return { ok: false, reason: "no territories returned" };
   }
 
   let existingId = null;
@@ -649,7 +662,7 @@ async function ensureAvailability(token, subscriptionId) {
     console.log(
       `  availability ok (id=${existingId}, territories=${existingTerritoryCount}, newTerritories=true)`,
     );
-    return;
+    return { ok: true };
   }
 
   if (existingId) {
@@ -661,7 +674,7 @@ async function ensureAvailability(token, subscriptionId) {
   console.log(
     `  setting availability: ${territories.length} territories, availableInNewTerritories=true…`,
   );
-  if (DRY) return;
+  if (DRY) return { ok: true };
 
   try {
     if (existingId) {
@@ -684,7 +697,7 @@ async function ensureAvailability(token, subscriptionId) {
         { data: territories },
       );
       console.log("  availability updated");
-      return;
+      return { ok: true };
     }
 
     await asc(token, "POST", "/v1/subscriptionAvailabilities", {
@@ -700,10 +713,12 @@ async function ensureAvailability(token, subscriptionId) {
       },
     });
     console.log("  availability ok");
+    return { ok: true };
   } catch (err) {
     console.warn(
       `  WARN: could not set availability (${err.message}). Set Availability → All Countries in Connect UI.`,
     );
+    return { ok: false, reason: err.message };
   }
 }
 
@@ -726,13 +741,25 @@ async function main() {
   const existing = await listGroupSubscriptions(token);
   console.log(`\ngroup has ${existing.length} subscription(s)`);
 
+  const hardFailures = [];
+
   for (const product of PRODUCTS) {
     console.log(`\n— ${product.productId}`);
     const sub = await ensureSubscription(token, existing, product);
     const id = sub?.id;
+    if (!id && !DRY) {
+      hardFailures.push(`${product.productId}: subscription missing after ensure`);
+      continue;
+    }
     await ensureLocalization(token, id, product);
-    await ensurePrice(token, id, product);
-    await ensureAvailability(token, id);
+    const price = await ensurePrice(token, id, product);
+    if (price && price.ok === false) {
+      hardFailures.push(`${product.productId}: price/equalizations — ${price.reason}`);
+    }
+    const avail = await ensureAvailability(token, id);
+    if (avail && avail.ok === false) {
+      hardFailures.push(`${product.productId}: availability — ${avail.reason}`);
+    }
     await ensureReviewNote(token, id);
     await ensureReviewScreenshot(token, id);
   }
@@ -745,6 +772,12 @@ Still required in App Store Connect / on device:
   4. Merge IAP PR → Xcode Cloud Deploy to TestFlight (or Mac Archive build 5+)
   5. Sandbox buy (Apple sheet, not Stripe) + Restore → Submit with IAP
 `);
+
+  if (hardFailures.length && !DRY) {
+    console.error("\nASC upsert incomplete — fix before relying on sandbox buys:");
+    for (const f of hardFailures) console.error(`  - ${f}`);
+    process.exit(1);
+  }
 }
 
 main().catch((err) => {

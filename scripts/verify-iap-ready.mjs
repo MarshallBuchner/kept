@@ -129,6 +129,23 @@ if (entitlementSync.includes("appStateChange")) {
 } else {
   fail("iap-foreground-sync", "IapEntitlementSync should listen for appStateChange");
 }
+if (
+  entitlementSync.includes("transactionUpdated") &&
+  (iap.includes("handleStoreKitTransactionUpdate") ||
+    entitlementSync.includes("syncProFromStoreKit"))
+) {
+  ok("iap-transaction-updates", "listens for Capgo transactionUpdated");
+} else {
+  fail(
+    "iap-transaction-updates",
+    "IapEntitlementSync should listen for NativePurchases transactionUpdated",
+  );
+}
+if (iap.includes("emptyEntitlementStreak") || iap.includes("emptyEntitlement")) {
+  ok("iap-clear-guard", "avoids clearing Pro on a single empty entitlement read");
+} else {
+  fail("iap-clear-guard", "syncProFromStoreKit should not clear Pro on first empty read");
+}
 
 // --- ASC upsert covers availability + equalizations ---
 if (asc.includes("subscriptionAvailabilities") || asc.includes("ensureAvailability")) {
