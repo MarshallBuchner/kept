@@ -77,6 +77,8 @@ Product IDs (must match App Store Connect):
 
 Local StoreKit file for Xcode testing: `ios/App/App/Products.storekit`
 
+Mac one-shot: `./scripts/ios-iap-sync.sh`
+
 After pulling IAP code on the Mac:
 
 ```bash
