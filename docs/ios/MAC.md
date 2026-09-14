@@ -119,3 +119,13 @@ npm run cap:open:ios      # open Xcode
 ### Xcode Cloud
 
 `ios/App/ci_scripts/ci_post_clone.sh` runs `npm ci` (+ `cap sync ios`) after clone so CapApp-SPM can resolve Capacitor plugins under `node_modules`. Local Archives still use `npm ci && npx cap sync ios` on your Mac — Cloud is optional.
+
+**Deploy to TestFlight (preferred over local Archive):**
+
+1. [App Store Connect](https://appstoreconnect.apple.com) → your app → **Xcode Cloud**
+2. Open the **Archive - iOS** (or equivalent) workflow that is already green on `main`
+3. **Post-Actions** → add **Deploy to TestFlight** (Internal / your group)
+4. Start a build from `main` (or push after merging PR #65)
+5. Install from TestFlight → sandbox buy with Apple sheet
+
+Build numbers: `ci_pre_xcodebuild.sh` sets `CURRENT_PROJECT_VERSION` from `CI_BUILD_NUMBER` so TestFlight uploads do not collide.

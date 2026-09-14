@@ -78,7 +78,11 @@ Still finish in Connect UI after API/UI create:
 
 Still finish Paid Apps + sandbox after.
 
-## B) Mac Archive → TestFlight
+## B) TestFlight (prefer Xcode Cloud)
+
+**Preferred:** App Store Connect → Xcode Cloud → Archive workflow on `main` → **Post-Actions → Deploy to TestFlight** (see `docs/ios/MAC.md`). Archive is already green — enable the post-action if missing, then install the Cloud build.
+
+**Else Mac Archive:**
 
 ```bash
 cd ~/Desktop/kept   # or your clone path
@@ -90,8 +94,6 @@ In Xcode:
 1. Signing & Capabilities → **In-App Purchase** should already be listed (declared in the project). Confirm your Team is selected.
 2. Any iOS Device (arm64) → **Product → Archive** → Distribute → App Store Connect
 3. Wait for TestFlight build **1.0 (5)** (or higher)
-
-Optional: if Xcode Cloud workflow has a TestFlight post-action, check TestFlight for a Cloud build first (Archive on `main` is green).
 
 ## C) Sandbox purchase (required before Submit)
 

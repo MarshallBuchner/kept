@@ -63,10 +63,20 @@ echo "Syncing Capacitor iOS…"
 npx cap sync ios
 
 echo
+if grep -q 'com.apple.InAppPurchase' ios/App/App.xcodeproj/project.pbxproj 2>/dev/null; then
+  echo "OK In-App Purchase capability declared in project.pbxproj"
+else
+  echo "WARN: com.apple.InAppPurchase not found in project — add capability in Xcode before Archive" >&2
+fi
+
+echo
 echo "Next:"
-echo "  Connect: Actions → ASC upsert Kept Pro IAP (or finish monthly+yearly in UI)"
-echo "  Xcode: Signing & Capabilities → In-App Purchase"
-echo "  Archive → TestFlight → sandbox buy (Apple sheet) → Submit with IAP"
+echo "  0) Merge PR #65 if not on main yet, then git pull"
+echo "  1) Connect: npm run ios:iap:next   (or Actions → ASC upsert Kept Pro IAP)"
+echo "  2) Prefer: App Store Connect → Xcode Cloud → workflow → Post-Actions → TestFlight"
+echo "     (Archive on main is already green — enable Deploy to TestFlight if missing)"
+echo "  3) Else Mac: Xcode → Team selected → Product → Archive → TestFlight"
+echo "  4) Sandbox buy (Apple sheet) → Restore → Submit with IAP"
 echo "  Checklist: docs/ios/SHIP_NOW.md"
 echo
 echo "Opening Xcode…"

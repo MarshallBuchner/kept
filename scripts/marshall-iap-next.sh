@@ -34,10 +34,13 @@ cat <<'EOF'
 
 4) Users and Access → Sandbox → Testers → create tester
 
-5) Mac Archive → TestFlight
-   git checkout main && git pull
-   ./scripts/ios-iap-sync.sh
-   Xcode: Team selected, In-App Purchase present → Archive (build 5+)
+5) TestFlight build (prefer Xcode Cloud)
+   App Store Connect → Xcode Cloud → Archive workflow on main
+   → Post-Actions → Deploy to TestFlight (enable if missing)
+   Else Mac:
+     git checkout main && git pull
+     ./scripts/ios-iap-sync.sh
+     Xcode: Team selected, In-App Purchase present → Archive (build 5+)
 
 6) Sandbox buy on device
    Settings → App Store → Sandbox Account → tester
