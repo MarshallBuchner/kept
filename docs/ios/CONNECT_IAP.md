@@ -93,7 +93,7 @@ On the **Kept Pro** group page:
 8. **Image (Optional)** — skip (1024×1024 promo art; not required)  
 9. **Tax Category** — leave **Match to parent app**  
 10. **Review Information** (required before first IAP submit):  
-    - **Screenshot**: paywall showing Kept Pro Monthly / Buy (any clear iPhone capture of the paywall is fine)  
+    - **Screenshot**: upload `docs/ios/screenshots/iap-review-paywall.png` from the repo (or any clear iPhone capture of the paywall)  
     - **Review Notes** (optional): `Open Settings → Kept Pro, or hit the paywall after free limit. Buy uses Apple IAP.`  
 11. **Save** if enabled. Do **not** click **Add for Review** yet — finish yearly + sandbox first.
 
@@ -116,7 +116,7 @@ Same flow as monthly:
 - Price: **CA$19.99**  
 - Display Name: `Kept Pro Yearly`  
 - Description: `Unlimited scans and PDF exports, billed yearly. Best value.`  
-- **Review Information** screenshot: same paywall (showing yearly option is fine)  
+- **Review Information** screenshot: same file `docs/ios/screenshots/iap-review-paywall.png` (or yearly selected)  
 - Skip optional promo image; leave tax matched  
 - Save; defer **Add for Review** until both products + sandbox are done
 
