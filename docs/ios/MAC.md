@@ -115,3 +115,7 @@ npm run cap:open:ios      # open Xcode
 - White screen: production URL down, or ATS blocking a host — check `server.allowNavigation` in `capacitor.config.ts`.
 - Camera noop: confirm Info.plist usage strings + grant permission on device.
 - Signing errors: Bundle ID mismatch or Team not selected.
+
+### Xcode Cloud
+
+`ios/App/ci_scripts/ci_post_clone.sh` runs `npm ci` (+ `cap sync ios`) after clone so CapApp-SPM can resolve Capacitor plugins under `node_modules`. Local Archives still use `npm ci && npx cap sync ios` on your Mac — Cloud is optional.
