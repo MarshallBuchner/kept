@@ -1,18 +1,21 @@
 # Ship Kept iOS with StoreKit IAP — do now
 
-Status on code/main (already done):
-- Xcode Cloud **Archive - iOS** green on `main`
-- Native shell: TikTok Pixel off; Settings Restore + Manage subscription; no clear-Pro for IAP
-- StoreKit entitlement sync on launch (IAP Pro clears when Apple says expired)
+## Status split (read this before Archive)
 
-- Web IAP + Stripe gated off in native shell (live on `https://kept-eosin.vercel.app`)
-- Terms/Privacy mention App Store billing
-- Paywall Apple auto-renew disclosure + Restore
-- Capgo Native Purchases + **In-App Purchase** capability declared in the Xcode project (StoreKit linked; confirm signing team on Mac before Archive)
-- iOS build **5** (Xcode Cloud auto-bumps via `CI_BUILD_NUMBER`) (`CURRENT_PROJECT_VERSION`)
-- Review screenshot: `docs/ios/screenshots/iap-review-paywall.png` (1290×2796)
-- Run scheme uses `Products.storekit` for local StoreKit testing (Archive/TestFlight still use Connect products)
-- App Privacy Manifest: `ios/App/App/PrivacyInfo.xcprivacy` (UserDefaults CA92.1; no tracking)
+**Already on `main` / live web** (`https://kept-eosin.vercel.app`):
+- Xcode Cloud **Archive - iOS** green; iOS build **5** (`CURRENT_PROJECT_VERSION`; Cloud auto-bumps via `CI_BUILD_NUMBER`)
+- Capgo Native Purchases + Stripe gated off in the native shell; Settings Restore + Manage
+- Paywall Apple auto-renew disclosure; Terms/Privacy mention App Store billing
+- ASC upsert workflow (manual **Run workflow**) — needs GitHub `ASC_*` secrets
+
+**Only on PR [#65](https://github.com/MarshallBuchner/kept/pull/65) — merge before Archive/TestFlight:**
+- **In-App Purchase** capability (`com.apple.InAppPurchase`) + StoreKit.framework linked
+- Quiet StoreKit entitlement sync (launch + foreground + Capgo `transactionUpdated`)
+- App Privacy Manifest (`PrivacyInfo.xcprivacy`)
+- Hardened ASC upsert (equalizations, all-territory availability, screenshot replace/size gates) + auto-run on `main` when secrets exist
+- `npm run ios:iap:verify` gate + review PNG 1290×2796 + scheme → `Products.storekit`
+
+Do **not** Archive from current `main` expecting IAP capability — that lands with #65.
 
 ## 0) Confirm repo is ready
 
@@ -78,20 +81,20 @@ Still finish in Connect UI after API/UI create:
 - Subscription group **Privacy Policy URL** (`https://kept-eosin.vercel.app/privacy`)
 - Paid Apps Active + sandbox tester
 
-## B) TestFlight (prefer Xcode Cloud)
+## B) TestFlight (prefer Xcode Cloud) — only after #65 is on `main`
 
-**Preferred:** App Store Connect → Xcode Cloud → Archive workflow on `main` → **Post-Actions → Deploy to TestFlight** (see `docs/ios/MAC.md`). Archive is already green — enable the post-action if missing, then install the Cloud build.
+**Preferred:** App Store Connect → Xcode Cloud → Archive workflow on post-merge `main` → **Post-Actions → Deploy to TestFlight** (see `docs/ios/MAC.md`). Enable the post-action if missing, then install the Cloud build.
 
 **Else Mac Archive:**
 
 ```bash
 cd ~/Desktop/kept   # or your clone path
-git checkout main && git pull
+git checkout main && git pull   # must include #65
 ./scripts/ios-iap-sync.sh
 ```
 
 In Xcode:
-1. Signing & Capabilities → **In-App Purchase** should already be listed (declared in the project). Confirm your Team is selected.
+1. Signing & Capabilities → **In-App Purchase** should already be listed (from #65). Confirm your Team is selected.
 2. Any iOS Device (arm64) → **Product → Archive** → Distribute → App Store Connect
 3. Wait for TestFlight build **1.0 (5)** (or higher)
 

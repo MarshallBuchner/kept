@@ -397,9 +397,9 @@ Human gates still required (not checked here):
   1. GitHub secrets ASC_ISSUER_ID / ASC_KEY_ID / ASC_PRIVATE_KEY
   2. Actions → ASC upsert Kept Pro IAP → Run workflow
      (or Connect UI: monthly+yearly + review screenshots)
-  3. Paid Apps agreement Active
-  4. Sandbox tester
-  5. Mac Archive (build 5+) → TestFlight
+  3. Merge PR #65 before Archive (IAP capability not on pre-merge main)
+  4. Paid Apps agreement Active + sandbox tester
+  5. TestFlight build 5+ (prefer Xcode Cloud Deploy to TestFlight)
   6. Sandbox purchase shows Apple sheet (not Stripe) + Restore
   7. Submit for Review with IAP attached
 See docs/ios/SHIP_NOW.md

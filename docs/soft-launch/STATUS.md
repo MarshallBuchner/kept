@@ -31,14 +31,14 @@ Repo gate (CI + local): `npm run ios:iap:verify` — product IDs, Stripe gate, r
 
 Fast Connect path:
 
-1. Merge [#65](https://github.com/MarshallBuchner/kept/pull/65)
-2. Create ASC API key → add GitHub secrets `ASC_ISSUER_ID`, `ASC_KEY_ID`, `ASC_PRIVATE_KEY`
-3. Actions → **ASC upsert Kept Pro IAP** → Run workflow
+1. Create ASC API key → add GitHub secrets `ASC_ISSUER_ID`, `ASC_KEY_ID`, `ASC_PRIVATE_KEY` (can do before merge)
+2. Actions → **ASC upsert Kept Pro IAP** → Run workflow on `main` (or Connect UI)
+3. **Merge [#65](https://github.com/MarshallBuchner/kept/pull/65)** before any Archive/TestFlight — current `main` lacks In-App Purchase capability + hardened StoreKit sync
 4. Paid Apps Active + Sandbox tester
-5. Prefer Xcode Cloud **Deploy to TestFlight** post-action on `main` (Archive already green); else Mac Archive
+5. Prefer Xcode Cloud **Deploy to TestFlight** post-action on post-merge `main`; else Mac Archive
 6. Sandbox buy (Apple sheet) → Restore → Submit with IAP
 
-Do **not** submit a Stripe-only binary.
+Do **not** submit a Stripe-only binary. Do **not** Archive pre-#65 `main`.
 
 ### Current production URL (ads, bio, App Store links)
 

@@ -29,9 +29,10 @@ cat <<'EOF'
    Keep both at subscription level 1. Group Privacy:
      https://kept-eosin.vercel.app/privacy
 
-2) Merge PR #65 (IAP capability in Xcode project + hardened StoreKit sync + verify gate)
+2) Merge PR #65 BEFORE Archive/TestFlight
    https://github.com/MarshallBuchner/kept/pull/65
-   Needed before Archive/TestFlight so the binary has In-App Purchase + quiet entitlement sync.
+   Current main does NOT declare com.apple.InAppPurchase / StoreKit link /
+   PrivacyInfo / quiet entitlement sync — those land with #65.
 
 3) Business → Agreements → Paid Apps = Active (tax + banking)
 
