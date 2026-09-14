@@ -193,18 +193,20 @@ export function PaywallSheet({
         {nativeIOS ? (
           <>
             <p className="mt-3 text-[11px] leading-4 text-muted">
-              Kept Pro {plan === "yearly" ? "Yearly" : "Monthly"} is an auto-renewable subscription
-              ({plan === "yearly" ? `${yearlyPrice} / year` : `${monthlyPrice} / month`}). Payment is
-              charged to your Apple ID at confirmation. Your account will be charged for renewal
-              within 24 hours prior to the end of the current period. The subscription renews
-              automatically unless cancelled at least 24 hours before the period ends. Manage or
-              cancel in Settings → Apple ID → Subscriptions.{" "}
+              Kept Pro {plan === "yearly" ? "Yearly" : "Monthly"} is an auto-renewable
+              subscription. Price:{" "}
+              {plan === "yearly" ? `${yearlyPrice} / year` : `${monthlyPrice} / month`}. Payment
+              is charged to your Apple ID at confirmation. Your account will be charged the same
+              renewal price ({plan === "yearly" ? yearlyPrice : monthlyPrice}) within 24 hours
+              prior to the end of the current period. The subscription renews automatically unless
+              cancelled at least 24 hours before the period ends. Manage or cancel in Settings →
+              Apple ID → Subscriptions.{" "}
               <Link href="/terms" className="text-accent underline-offset-2 hover:underline">
-                Terms
+                Terms of Use (EULA)
               </Link>
               {" · "}
               <Link href="/privacy" className="text-accent underline-offset-2 hover:underline">
-                Privacy
+                Privacy Policy
               </Link>
             </p>
             <button

@@ -194,6 +194,26 @@ if (paywall.includes("Restore purchases") && settings.includes("Restore purchase
 } else {
   fail("restore-ui", "Restore purchases missing on paywall and/or settings");
 }
+// Guideline 3.1.2 subscription disclosure on native paywall
+if (
+  /auto-renew/i.test(paywall) &&
+  /24 hours/i.test(paywall) &&
+  /Terms of Use \(EULA\)/.test(paywall) &&
+  /Privacy Policy/.test(paywall) &&
+  /renewal price/i.test(paywall)
+) {
+  ok("paywall-312-disclosure", "auto-renew, renewal price, EULA + Privacy Policy");
+} else {
+  fail(
+    "paywall-312-disclosure",
+    "PaywallSheet missing Guideline 3.1.2 disclosure (auto-renew, renewal price, Terms of Use (EULA), Privacy Policy)",
+  );
+}
+if (asc.includes("assertReviewScreenshotReady") || asc.includes("readUInt32BE(16)")) {
+  ok("asc-screenshot-gate", "ASC upsert validates review screenshot size");
+} else {
+  fail("asc-screenshot-gate", "asc-upsert-iap.mjs should hard-fail bad/missing review screenshots");
+}
 if (
   iap.includes("manageProSubscriptions") &&
   (paywall.includes("manageProSubscriptions") || settings.includes("manageProSubscriptions"))

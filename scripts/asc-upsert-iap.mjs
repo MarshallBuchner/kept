@@ -506,11 +506,44 @@ async function uploadBinary(uploadOperations, bytes) {
   }
 }
 
-async function ensureReviewScreenshot(token, subscriptionId) {
-  if (!subscriptionId) return;
+function assertReviewScreenshotReady() {
   if (!fs.existsSync(SCREENSHOT_PATH)) {
-    console.warn(`  WARN: screenshot missing at ${SCREENSHOT_PATH}`);
-    return;
+    throw new Error(
+      `ASC review screenshot missing at ${SCREENSHOT_PATH}. Add docs/ios/screenshots/iap-review-paywall.png (~1290×2796).`,
+    );
+  }
+  const bytes = fs.readFileSync(SCREENSHOT_PATH);
+  if (bytes.length < 24 || bytes[0] !== 0x89 || bytes[1] !== 0x50) {
+    throw new Error(`ASC review screenshot is not a PNG: ${SCREENSHOT_PATH}`);
+  }
+  const width = bytes.readUInt32BE(16);
+  const height = bytes.readUInt32BE(20);
+  // Match verify-iap-ready: phone portrait, not a tall scroll strip
+  if (
+    width < 1170 ||
+    width > 1320 ||
+    height < 2000 ||
+    height > 3200 ||
+    height / width > 2.5
+  ) {
+    throw new Error(
+      `ASC review screenshot ${width}×${height} is not App Review–ready (use ~1290×2796 iPhone).`,
+    );
+  }
+  return { bytes, width, height };
+}
+
+async function ensureReviewScreenshot(token, subscriptionId) {
+  if (!subscriptionId) return { ok: false, reason: "missing subscription id" };
+
+  let bytes;
+  let width;
+  let height;
+  try {
+    ({ bytes, width, height } = assertReviewScreenshotReady());
+  } catch (err) {
+    console.error(`  ERROR: ${err.message}`);
+    return { ok: false, reason: err.message };
   }
 
   // Skip if one already linked
@@ -522,53 +555,60 @@ async function ensureReviewScreenshot(token, subscriptionId) {
     );
     if (existingShot.data?.id) {
       console.log(`  review screenshot already linked (${existingShot.data.id})`);
-      return;
+      return { ok: true };
     }
   } catch {
     // 404 = none yet
   }
 
-  const bytes = fs.readFileSync(SCREENSHOT_PATH);
   const fileName = path.basename(SCREENSHOT_PATH);
   const fileSize = bytes.length;
   const checksum = crypto.createHash("md5").update(bytes).digest("hex");
 
-  console.log(`  uploading review screenshot ${fileName} (${fileSize} bytes)…`);
-  if (DRY) return;
+  console.log(
+    `  uploading review screenshot ${fileName} (${width}×${height}, ${fileSize} bytes)…`,
+  );
+  if (DRY) return { ok: true };
 
-  const created = await asc(token, "POST", "/v1/subscriptionAppStoreReviewScreenshots", {
-    data: {
-      type: "subscriptionAppStoreReviewScreenshots",
-      attributes: { fileName, fileSize },
-      relationships: {
-        subscription: {
-          data: { type: "subscriptions", id: subscriptionId },
+  try {
+    const created = await asc(token, "POST", "/v1/subscriptionAppStoreReviewScreenshots", {
+      data: {
+        type: "subscriptionAppStoreReviewScreenshots",
+        attributes: { fileName, fileSize },
+        relationships: {
+          subscription: {
+            data: { type: "subscriptions", id: subscriptionId },
+          },
         },
       },
-    },
-  });
+    });
 
-  const shotId = created.data.id;
-  // Prefer attributes.uploadOperations (ASC returns them on create)
-  const ops = created.data.attributes?.uploadOperations ?? [];
-  if (!Array.isArray(ops) || ops.length === 0) {
-    throw new Error(
-      `review screenshot create returned no uploadOperations (id=${shotId}). Retry or upload in Connect UI.`,
-    );
-  }
-  await uploadBinary(ops, bytes);
+    const shotId = created.data.id;
+    // Prefer attributes.uploadOperations (ASC returns them on create)
+    const ops = created.data.attributes?.uploadOperations ?? [];
+    if (!Array.isArray(ops) || ops.length === 0) {
+      throw new Error(
+        `review screenshot create returned no uploadOperations (id=${shotId}). Retry or upload in Connect UI.`,
+      );
+    }
+    await uploadBinary(ops, bytes);
 
-  await asc(token, "PATCH", `/v1/subscriptionAppStoreReviewScreenshots/${shotId}`, {
-    data: {
-      type: "subscriptionAppStoreReviewScreenshots",
-      id: shotId,
-      attributes: {
-        uploaded: true,
-        sourceFileChecksum: checksum,
+    await asc(token, "PATCH", `/v1/subscriptionAppStoreReviewScreenshots/${shotId}`, {
+      data: {
+        type: "subscriptionAppStoreReviewScreenshots",
+        id: shotId,
+        attributes: {
+          uploaded: true,
+          sourceFileChecksum: checksum,
+        },
       },
-    },
-  });
-  console.log(`  review screenshot committed (${shotId})`);
+    });
+    console.log(`  review screenshot committed (${shotId})`);
+    return { ok: true };
+  } catch (err) {
+    console.error(`  ERROR: review screenshot upload failed (${err.message})`);
+    return { ok: false, reason: err.message };
+  }
 }
 
 async function ensureReviewNote(token, subscriptionId) {
@@ -729,6 +769,15 @@ async function main() {
   console.log(`screenshot=${SCREENSHOT_PATH}`);
   if (DRY) console.log("DRY RUN — no writes");
 
+  // Fail fast before touching ASC if review asset is wrong
+  try {
+    const { width, height } = assertReviewScreenshotReady();
+    console.log(`screenshot ok: ${width}×${height}`);
+  } catch (err) {
+    console.error(err.message);
+    process.exit(1);
+  }
+
   const token = makeToken();
 
   // Sanity: app exists
@@ -761,7 +810,10 @@ async function main() {
       hardFailures.push(`${product.productId}: availability — ${avail.reason}`);
     }
     await ensureReviewNote(token, id);
-    await ensureReviewScreenshot(token, id);
+    const shot = await ensureReviewScreenshot(token, id);
+    if (shot && shot.ok === false) {
+      hardFailures.push(`${product.productId}: review screenshot — ${shot.reason}`);
+    }
   }
 
   console.log(`\nDone.
