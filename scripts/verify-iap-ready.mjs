@@ -41,6 +41,7 @@ const requiredFiles = [
   "docs/ios/SHIP_NOW.md",
   "docs/ios/screenshots/iap-review-paywall.png",
   "ios/App/App/Products.storekit",
+  "ios/App/App/PrivacyInfo.xcprivacy",
   "ios/App/ci_scripts/ci_post_clone.sh",
   "ios/App/ci_scripts/ci_pre_xcodebuild.sh",
   ".github/workflows/asc-upsert-iap.yml",

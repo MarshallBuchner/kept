@@ -12,6 +12,7 @@ Status on code/main (already done):
 - iOS build **5** (Xcode Cloud auto-bumps via `CI_BUILD_NUMBER`) (`CURRENT_PROJECT_VERSION`)
 - Review screenshot: `docs/ios/screenshots/iap-review-paywall.png` (1290×2796)
 - Run scheme uses `Products.storekit` for local StoreKit testing (Archive/TestFlight still use Connect products)
+- App Privacy Manifest: `ios/App/App/PrivacyInfo.xcprivacy` (UserDefaults CA92.1; no tracking)
 
 ## 0) Confirm repo is ready
 
