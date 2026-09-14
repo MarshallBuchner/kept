@@ -63,11 +63,11 @@ echo "Syncing Capacitor iOS…"
 npx cap sync ios
 
 echo
-echo "Next in Xcode:"
-echo "  1) Signing & Capabilities → + → In-App Purchase"
-echo "  2) (Optional) Scheme → Run → Options → StoreKit Configuration → Products.storekit"
-echo "  3) Any iOS Device → Product → Archive → Upload (build should be 5+)"
-echo "  4) Connect: create $MONTHLY + $YEARLY if not done — see docs/ios/CONNECT_IAP.md"
+echo "Next:"
+echo "  Connect: Actions → ASC upsert Kept Pro IAP (or finish monthly+yearly in UI)"
+echo "  Xcode: Signing & Capabilities → In-App Purchase"
+echo "  Archive → TestFlight → sandbox buy (Apple sheet) → Submit with IAP"
+echo "  Checklist: docs/ios/SHIP_NOW.md"
 echo
 echo "Opening Xcode…"
 npx cap open ios
