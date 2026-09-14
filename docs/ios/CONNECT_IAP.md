@@ -9,7 +9,7 @@ App record: **Kept Scan** (or **Kept**)
 
 - [x] Web IAP code deployed (PR #50)
 - [x] Connect runbook + StoreKit config (PR #51)
-- [x] Xcode **In-App Purchase** capability + CapgoNativePurchases (confirm on Mac before Archive)
+- [x] Xcode **In-App Purchase** capability + CapgoNativePurchases (declared in project.pbxproj; confirm Team on Mac before Archive)
 - [ ] **Paid Apps** agreement Active (Business → Agreements)
 - [ ] Subscription group **Kept Pro** + 2 products (price + localization + review screenshot)
 - [ ] Group localization + Privacy Policy URL
@@ -156,7 +156,7 @@ npx cap open ios
 
 In Xcode:
 
-1. Target **App** → **Signing & Capabilities** → confirm **In-App Purchase** (add if missing)
+1. Target **App** → **Signing & Capabilities** → **In-App Purchase** should already be present (project declares `com.apple.InAppPurchase`). Confirm Team / signing.
 2. Optional local test: **Product → Scheme → Edit Scheme → Run → Options → StoreKit Configuration** → select `App/Products.storekit`
 3. **Any iOS Device (arm64)** → **Product → Archive** → upload to TestFlight
 4. Install **new** build → open paywall → confirm Apple sheet (not Stripe) → buy with Sandbox → Restore works

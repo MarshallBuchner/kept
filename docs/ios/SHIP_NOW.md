@@ -86,7 +86,7 @@ git checkout main && git pull
 ```
 
 In Xcode:
-1. Signing & Capabilities → confirm **In-App Purchase**
+1. Signing & Capabilities → **In-App Purchase** should already be listed (declared in the project). Confirm your Team is selected.
 2. Any iOS Device (arm64) → **Product → Archive** → Distribute → App Store Connect
 3. Wait for TestFlight build **1.0 (5)** (or higher)
 
