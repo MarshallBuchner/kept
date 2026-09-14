@@ -9,7 +9,7 @@ Status on code/main (already done):
 - Paywall Apple auto-renew disclosure + Restore
 - Capgo Native Purchases + In-App Purchase capability
 - iOS build **5** (Xcode Cloud auto-bumps via `CI_BUILD_NUMBER`) (`CURRENT_PROJECT_VERSION`)
-- Review screenshot: `docs/ios/screenshots/iap-review-paywall.png`
+- Review screenshot: `docs/ios/screenshots/iap-review-paywall.png` (1290×2796)
 
 ## 0) Confirm repo is ready
 
@@ -24,7 +24,14 @@ CI also runs `ios:iap:verify` on pushes/PRs that touch the repo (`Verify IAP rep
 
 ## A) App Store Connect (you)
 
-1. **Monthly** Review Information → upload  
+Product IDs (must match code exactly):
+
+| Product ID | Duration | Price |
+| --- | --- | --- |
+| `ca.keptapp.app.pro.monthly` | 1 Month | CA$2.99 |
+| `ca.keptapp.app.pro.yearly` | 1 Year | CA$19.99 |
+
+1. **Monthly** (`ca.keptapp.app.pro.monthly`) Review Information → upload  
    https://raw.githubusercontent.com/MarshallBuchner/kept/main/docs/ios/screenshots/iap-review-paywall.png  
    Save. Do **not** Add for Review yet.
 2. **‹ Kept Pro** → create **Yearly**  

@@ -100,6 +100,42 @@ if (
   fail("manage-subscription", "manageProSubscriptions not wired");
 }
 
+// --- Capgo StoreKit API surface used by iap.ts ---
+for (const method of [
+  "isBillingSupported",
+  "getProducts",
+  "purchaseProduct",
+  "restorePurchases",
+  "getPurchases",
+  "manageSubscriptions",
+]) {
+  if (iap.includes(`NativePurchases.${method}`)) ok(`capgo:${method}`);
+  else fail(`capgo:${method}`, "missing NativePurchases call in iap.ts");
+}
+if (iap.includes("PURCHASE_TYPE.SUBS")) ok("capgo:PURCHASE_TYPE.SUBS");
+else fail("capgo:PURCHASE_TYPE.SUBS", "iap.ts must request subscription products");
+
+// --- Review screenshot dimensions (IAP review prefers phone-sized PNG) ---
+const shotRel = "docs/ios/screenshots/iap-review-paywall.png";
+if (exists(shotRel)) {
+  const buf = fs.readFileSync(path.join(root, shotRel));
+  if (buf.length > 8 && buf[0] === 0x89 && buf[1] === 0x50) {
+    const w = buf.readUInt32BE(16);
+    const h = buf.readUInt32BE(20);
+    // Accept common portrait phone widths; height should be ≤ ~3× width (not a tall scroll strip)
+    if (w >= 1170 && w <= 1320 && h >= 2000 && h <= 3200 && h / w <= 2.5) {
+      ok("review-screenshot-size", `${w}×${h}`);
+    } else {
+      fail(
+        "review-screenshot-size",
+        `${w}×${h} — use ~1290×2796 (iPhone) for Connect IAP review`,
+      );
+    }
+  } else {
+    fail("review-screenshot-size", "not a PNG");
+  }
+}
+
 // --- Capacitor server ---
 const cap = exists("capacitor.config.ts") ? read("capacitor.config.ts") : "";
 if (cap.includes("kept-eosin.vercel.app")) {
