@@ -1,11 +1,13 @@
 # Ship Kept iOS with StoreKit IAP — do now
 
 Status on code/main (already done):
+- Xcode Cloud **Archive - iOS** green on `main`
+
 - Web IAP + Stripe gated off in native shell (live on `https://kept-eosin.vercel.app`)
 - Terms/Privacy mention App Store billing
 - Paywall Apple auto-renew disclosure + Restore
 - Capgo Native Purchases + In-App Purchase capability
-- iOS build **4** (`CURRENT_PROJECT_VERSION`)
+- iOS build **5** (Xcode Cloud auto-bumps via `CI_BUILD_NUMBER`) (`CURRENT_PROJECT_VERSION`)
 - Review screenshot: `docs/ios/screenshots/iap-review-paywall.png`
 
 ## A) App Store Connect (you)
@@ -31,7 +33,9 @@ git checkout main && git pull
 In Xcode:
 1. Signing & Capabilities → confirm **In-App Purchase**
 2. Any iOS Device (arm64) → **Product → Archive** → Distribute → App Store Connect
-3. Wait for TestFlight build **1.0 (4)** (or higher)
+3. Wait for TestFlight build **1.0 (5)** (or higher)
+
+Optional: if Xcode Cloud workflow has a TestFlight post-action, check TestFlight for a Cloud build first (Archive on `main` is green).
 
 ## C) Sandbox purchase (required before Submit)
 
@@ -41,7 +45,7 @@ In Xcode:
 
 ## D) Submit for Review
 
-1. Connect → app version → select build 4+
+1. Connect → app version → select build 5+
 2. Attach both IAP products (or Add for Review on each)
 3. Paste App Review notes from `docs/ios/CONNECT_IAP.md`
 4. Submit — **not** a Stripe-only binary
