@@ -23,6 +23,23 @@ Status on code/main (already done):
 4. **Business → Agreements**: Paid Apps **Active** (tax + banking)
 5. **Users and Access → Sandbox → Testers**: create a tester
 
+
+## Optional: create products via API (instead of Connect UI)
+
+If you have an App Store Connect API key:
+
+```bash
+export ASC_ISSUER_ID='…'
+export ASC_KEY_ID='…'
+export ASC_PRIVATE_KEY_PATH="$HOME/AuthKey_XXX.p8"
+# Optional if defaults wrong:
+# export ASC_APP_ID='6811619551'
+# export ASC_GROUP_ID='22382931'
+npm run ios:iap:asc
+```
+
+Still upload the review screenshot and finish Paid Apps + sandbox after.
+
 ## B) Mac Archive → TestFlight
 
 ```bash
