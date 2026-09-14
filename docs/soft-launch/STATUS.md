@@ -12,16 +12,33 @@
 
 ### Active ship priority — iOS App Store + StoreKit IAP
 
-Follow **[`docs/ios/SHIP_NOW.md`](../ios/SHIP_NOW.md)** end-to-end.
+Follow **[`docs/ios/SHIP_NOW.md`](../ios/SHIP_NOW.md)** end-to-end.  
+Quick reminder: `npm run ios:iap:next`
+
+**Blocked on Marshall (repo is ready — PR [#65](https://github.com/MarshallBuchner/kept/pull/65)):**
+
+| Step | Status |
+| --- | --- |
+| Merge PR #65 | Open / needs merge |
+| ASC secrets + upsert (or Connect UI products) | Not run from agent (no `.p8`) |
+| Paid Apps Active + Sandbox tester | Human |
+| TestFlight build + Apple-sheet sandbox buy | Human |
+| Submit for Review with IAP | Human |
+
+Latest on PR #65: quiet StoreKit sync (no paid re-fire), foreground + Capgo `transactionUpdated` re-sync, safer Pro clear, Capgo `isActive` guard, ASC all-territory availability + storefront equalizations (workflow fails if those don’t stick).
+
+Repo gate (CI + local): `npm run ios:iap:verify` — product IDs, Stripe gate, restore/manage UI, IAP capability, privacy manifest, build ≥5, live Terms/Privacy. Does **not** prove Connect products or sandbox purchase.
 
 Fast Connect path:
 
-1. Create ASC API key → add GitHub secrets `ASC_ISSUER_ID`, `ASC_KEY_ID`, `ASC_PRIVATE_KEY`
-2. Actions → **ASC upsert Kept Pro IAP** → Run workflow
-3. Paid Apps Active + Sandbox tester
-4. Mac: `git pull && ./scripts/ios-iap-sync.sh` → Archive → TestFlight sandbox buy (Apple sheet) → Submit with IAP
+1. Create ASC API key → add GitHub secrets `ASC_ISSUER_ID`, `ASC_KEY_ID`, `ASC_PRIVATE_KEY` (can do before merge)
+2. Actions → **ASC upsert Kept Pro IAP** → Run workflow on `main` (or Connect UI)
+3. **Merge [#65](https://github.com/MarshallBuchner/kept/pull/65)** before any Archive/TestFlight — current `main` lacks In-App Purchase capability + hardened StoreKit sync
+4. Paid Apps Active + Sandbox tester
+5. Prefer Xcode Cloud **Deploy to TestFlight** post-action on post-merge `main`; else Mac Archive
+6. Sandbox buy (Apple sheet) → Restore → Submit with IAP
 
-Do **not** submit a Stripe-only binary.
+Do **not** submit a Stripe-only binary. Do **not** Archive pre-#65 `main`.
 
 ### Current production URL (ads, bio, App Store links)
 

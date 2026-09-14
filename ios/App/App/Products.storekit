@@ -21,7 +21,14 @@
     {
       "id" : "7A1B2C3D",
       "localizations" : [
-
+        {
+          "locale" : "en_CA",
+          "name" : "Kept Pro"
+        },
+        {
+          "locale" : "en_US",
+          "name" : "Kept Pro"
+        }
       ],
       "name" : "Kept Pro",
       "subscriptions" : [
@@ -42,6 +49,11 @@
               "description" : "Unlimited scans and PDF exports, billed monthly.",
               "displayName" : "Kept Pro Monthly",
               "locale" : "en_CA"
+            },
+            {
+              "description" : "Unlimited scans and PDF exports, billed monthly.",
+              "displayName" : "Kept Pro Monthly",
+              "locale" : "en_US"
             }
           ],
           "productID" : "ca.keptapp.app.pro.monthly",
@@ -62,7 +74,7 @@
           ],
           "displayPrice" : "19.99",
           "familyShareable" : false,
-          "groupNumber" : 2,
+          "groupNumber" : 1,
           "internalID" : "6A000002",
           "introductoryOffer" : null,
           "localizations" : [
@@ -70,6 +82,11 @@
               "description" : "Unlimited scans and PDF exports, billed yearly. Best value.",
               "displayName" : "Kept Pro Yearly",
               "locale" : "en_CA"
+            },
+            {
+              "description" : "Unlimited scans and PDF exports, billed yearly. Best value.",
+              "displayName" : "Kept Pro Yearly",
+              "locale" : "en_US"
             }
           ],
           "productID" : "ca.keptapp.app.pro.yearly",

@@ -19,7 +19,9 @@
  *   ASC_PRIVACY_URL        (default: https://kept-eosin.vercel.app/privacy)
  *   ASC_REVIEW_SCREENSHOT  (default: docs/ios/screenshots/iap-review-paywall.png)
  *
- * Also upserts: group localizations, app privacy URL, review notes, review screenshots.
+ * Also upserts: group localizations, app privacy URL, review notes, review screenshots,
+ * subscription territory availability (all storefronts + new territories), and
+ * storefront price equalizations from the CAN base price.
  *
  * Usage:
  *   node scripts/asc-upsert-iap.mjs
@@ -51,6 +53,7 @@ const PRODUCTS = [
     displayName: "Kept Pro Monthly",
     description: "Unlimited scans and PDF exports, billed monthly.",
     customerPrice: "2.99",
+    groupLevel: 1,
   },
   {
     productId: "ca.keptapp.app.pro.yearly",
@@ -59,6 +62,7 @@ const PRODUCTS = [
     displayName: "Kept Pro Yearly",
     description: "Unlimited scans and PDF exports, billed yearly. Best value.",
     customerPrice: "19.99",
+    groupLevel: 1,
   },
 ];
 
@@ -149,6 +153,27 @@ async function ensureSubscription(token, existing, product) {
   );
   if (found) {
     console.log(`OK exists ${product.productId} (id=${found.id})`);
+    const currentLevel = found.attributes?.groupLevel;
+    if (currentLevel != null && currentLevel !== product.groupLevel) {
+      console.log(
+        `  groupLevel ${currentLevel} → ${product.groupLevel} (same-level crossgrade with sibling plan)`,
+      );
+      if (!DRY) {
+        try {
+          await asc(token, "PATCH", `/v1/subscriptions/${found.id}`, {
+            data: {
+              type: "subscriptions",
+              id: found.id,
+              attributes: { groupLevel: product.groupLevel },
+            },
+          });
+        } catch (err) {
+          console.warn(
+            `  WARN: could not set groupLevel (${err.message}). Set both plans to level 1 in Connect UI.`,
+          );
+        }
+      }
+    }
     return found;
   }
 
@@ -166,6 +191,7 @@ async function ensureSubscription(token, existing, product) {
         productId: product.productId,
         subscriptionPeriod: product.period,
         familySharable: false,
+        groupLevel: product.groupLevel,
       },
       relationships: {
         group: {
@@ -211,8 +237,128 @@ async function ensureLocalization(token, subscriptionId, product) {
   }
 }
 
+/** Paginate current subscription prices; return Set of pricePoint ids already applied. */
+async function listCurrentPricePointIds(token, subscriptionId) {
+  const ids = new Set();
+  let path =
+    `/v1/subscriptions/${subscriptionId}/prices?limit=200&include=subscriptionPricePoint,territory`;
+  while (path) {
+    const page = await asc(token, "GET", path);
+    for (const price of page.data ?? []) {
+      const rel = price.relationships?.subscriptionPricePoint?.data?.id;
+      if (rel) ids.add(rel);
+    }
+    const next = page.links?.next;
+    path = next ? next.replace("https://api.appstoreconnect.apple.com", "") : null;
+  }
+  return ids;
+}
+
+async function postSubscriptionPrice(token, subscriptionId, pricePointId) {
+  await asc(token, "POST", "/v1/subscriptionPrices", {
+    data: {
+      type: "subscriptionPrices",
+      attributes: { startDate: null },
+      relationships: {
+        subscription: {
+          data: { type: "subscriptions", id: subscriptionId },
+        },
+        subscriptionPricePoint: {
+          data: { type: "subscriptionPricePoints", id: pricePointId },
+        },
+      },
+    },
+  });
+}
+
+/**
+ * Apply Apple’s equalized (prefer adjusted) price points for every storefront.
+ * Needed so sandbox / Review outside CAN can buy without manual “Add all equalizations”.
+ * @returns {{ ok: boolean, reason?: string }}
+ */
+async function ensureEqualizedPrices(token, subscriptionId, basePricePointId) {
+  async function fetchEqs(kind) {
+    let path =
+      `/v1/subscriptionPricePoints/${basePricePointId}/${kind}` +
+      `?limit=200&include=territory`;
+    const eqs = [];
+    while (path) {
+      const page = await asc(token, "GET", path);
+      eqs.push(...(page.data ?? []));
+      const next = page.links?.next;
+      path = next ? next.replace("https://api.appstoreconnect.apple.com", "") : null;
+    }
+    return eqs;
+  }
+
+  let used = "adjustedEqualizations";
+  let eqs = [];
+  try {
+    eqs = await fetchEqs("adjustedEqualizations");
+  } catch (err) {
+    console.warn(
+      `  WARN: adjustedEqualizations failed (${err.message}); trying equalizations…`,
+    );
+  }
+
+  if (eqs.length === 0) {
+    used = "equalizations";
+    try {
+      eqs = await fetchEqs("equalizations");
+    } catch (err2) {
+      console.warn(
+        `  WARN: could not list equalizations (${err2.message}). Add equalizations in Connect UI.`,
+      );
+      return { ok: false, reason: `equalizations list failed: ${err2.message}` };
+    }
+  }
+
+  if (eqs.length === 0) {
+    console.warn("  WARN: no equalizations returned — set other storefront prices in Connect UI");
+    return { ok: false, reason: "no equalizations returned" };
+  }
+
+  console.log(`  equalizations (${used}): ${eqs.length} storefront price points`);
+  if (DRY) return { ok: true };
+
+  const have = await listCurrentPricePointIds(token, subscriptionId);
+  let added = 0;
+  let skipped = 0;
+  let failed = 0;
+  for (const pp of eqs) {
+    if (!pp?.id) continue;
+    if (have.has(pp.id)) {
+      skipped += 1;
+      continue;
+    }
+    try {
+      await postSubscriptionPrice(token, subscriptionId, pp.id);
+      have.add(pp.id);
+      added += 1;
+    } catch (err) {
+      failed += 1;
+      if (failed <= 3) {
+        console.warn(
+          `  WARN: could not set equalized price ${pp.id} (${err.message})`,
+        );
+      }
+    }
+  }
+  console.log(
+    `  equalizations applied: +${added}, already ${skipped}, failed ${failed}`,
+  );
+  // Allow a few transient conflicts; fail if many storefronts couldn't be priced.
+  if (failed > 5 && failed > eqs.length * 0.1) {
+    return {
+      ok: false,
+      reason: `too many equalization failures (${failed}/${eqs.length})`,
+    };
+  }
+  return { ok: true };
+}
+
 async function ensurePrice(token, subscriptionId, product) {
-  if (!subscriptionId) return;
+  if (!subscriptionId) return { ok: false, reason: "missing subscription id" };
   console.log(
     `  price: looking up ${BASE_TERRITORY} ≈ ${product.customerPrice}…`,
   );
@@ -245,50 +391,29 @@ async function ensurePrice(token, subscriptionId, product) {
     console.warn(
       `  WARN: no ${BASE_TERRITORY} price point for ${product.customerPrice}. Set price in Connect UI.`,
     );
-    return;
+    return {
+      ok: false,
+      reason: `no ${BASE_TERRITORY} price point for ${product.customerPrice}`,
+    };
   }
 
   console.log(
     `  using pricePoint ${match.id} (customerPrice=${match.attributes?.customerPrice})`,
   );
-  if (DRY) return;
-
-  // Current prices
-  const current = await asc(
-    token,
-    "GET",
-    `/v1/subscriptions/${subscriptionId}/prices?limit=50&include=subscriptionPricePoint,territory`,
-  );
-  const already = (current.data ?? []).some((price) => {
-    const rel = price.relationships?.subscriptionPricePoint?.data?.id;
-    return rel === match.id;
-  });
-  if (already) {
-    console.log("  price already set");
-    return;
+  if (DRY) {
+    console.log("  (dry-run) skip base price + equalizations");
+    return { ok: true };
   }
 
-  // Set base territory price immediately; equalizations can be done in UI or follow-up
-  await asc(token, "POST", "/v1/subscriptionPrices", {
-    data: {
-      type: "subscriptionPrices",
-      attributes: {
-        startDate: null,
-      },
-      relationships: {
-        subscription: {
-          data: { type: "subscriptions", id: subscriptionId },
-        },
-        subscriptionPricePoint: {
-          data: { type: "subscriptionPricePoints", id: match.id },
-        },
-      },
-    },
-  });
-  console.log(`  set ${BASE_TERRITORY} price`);
-  console.log(
-    "  NOTE: In Connect, use “Add all equalizations” (or price edit) for other storefronts.",
-  );
+  const have = await listCurrentPricePointIds(token, subscriptionId);
+  if (have.has(match.id)) {
+    console.log(`  ${BASE_TERRITORY} price already set`);
+  } else {
+    await postSubscriptionPrice(token, subscriptionId, match.id);
+    console.log(`  set ${BASE_TERRITORY} price`);
+  }
+
+  return ensureEqualizedPrices(token, subscriptionId, match.id);
 }
 
 async function ensureGroupLocalizations(token) {
@@ -381,14 +506,47 @@ async function uploadBinary(uploadOperations, bytes) {
   }
 }
 
-async function ensureReviewScreenshot(token, subscriptionId) {
-  if (!subscriptionId) return;
+function assertReviewScreenshotReady() {
   if (!fs.existsSync(SCREENSHOT_PATH)) {
-    console.warn(`  WARN: screenshot missing at ${SCREENSHOT_PATH}`);
-    return;
+    throw new Error(
+      `ASC review screenshot missing at ${SCREENSHOT_PATH}. Add docs/ios/screenshots/iap-review-paywall.png (~1290×2796).`,
+    );
+  }
+  const bytes = fs.readFileSync(SCREENSHOT_PATH);
+  if (bytes.length < 24 || bytes[0] !== 0x89 || bytes[1] !== 0x50) {
+    throw new Error(`ASC review screenshot is not a PNG: ${SCREENSHOT_PATH}`);
+  }
+  const width = bytes.readUInt32BE(16);
+  const height = bytes.readUInt32BE(20);
+  // Match verify-iap-ready: phone portrait, not a tall scroll strip
+  if (
+    width < 1170 ||
+    width > 1320 ||
+    height < 2000 ||
+    height > 3200 ||
+    height / width > 2.5
+  ) {
+    throw new Error(
+      `ASC review screenshot ${width}×${height} is not App Review–ready (use ~1290×2796 iPhone).`,
+    );
+  }
+  return { bytes, width, height };
+}
+
+async function ensureReviewScreenshot(token, subscriptionId) {
+  if (!subscriptionId) return { ok: false, reason: "missing subscription id" };
+
+  let bytes;
+  let width;
+  let height;
+  try {
+    ({ bytes, width, height } = assertReviewScreenshotReady());
+  } catch (err) {
+    console.error(`  ERROR: ${err.message}`);
+    return { ok: false, reason: err.message };
   }
 
-  // Skip if one already linked
+  // Replace any existing linked screenshot so a bad Connect asset cannot stick forever.
   try {
     const existingShot = await asc(
       token,
@@ -396,54 +554,67 @@ async function ensureReviewScreenshot(token, subscriptionId) {
       `/v1/subscriptions/${subscriptionId}/appStoreReviewScreenshot`,
     );
     if (existingShot.data?.id) {
-      console.log(`  review screenshot already linked (${existingShot.data.id})`);
-      return;
+      const oldId = existingShot.data.id;
+      console.log(`  removing existing review screenshot (${oldId}) before re-upload…`);
+      if (!DRY) {
+        await asc(token, "DELETE", `/v1/subscriptionAppStoreReviewScreenshots/${oldId}`);
+      }
     }
-  } catch {
-    // 404 = none yet
+  } catch (err) {
+    // 404 = none yet; other errors still attempt upload
+    if (err.status && err.status !== 404) {
+      console.warn(`  WARN: could not read/delete existing screenshot (${err.message})`);
+    }
   }
 
-  const bytes = fs.readFileSync(SCREENSHOT_PATH);
   const fileName = path.basename(SCREENSHOT_PATH);
   const fileSize = bytes.length;
   const checksum = crypto.createHash("md5").update(bytes).digest("hex");
 
-  console.log(`  uploading review screenshot ${fileName} (${fileSize} bytes)…`);
-  if (DRY) return;
+  console.log(
+    `  uploading review screenshot ${fileName} (${width}×${height}, ${fileSize} bytes)…`,
+  );
+  if (DRY) return { ok: true };
 
-  const created = await asc(token, "POST", "/v1/subscriptionAppStoreReviewScreenshots", {
-    data: {
-      type: "subscriptionAppStoreReviewScreenshots",
-      attributes: { fileName, fileSize },
-      relationships: {
-        subscription: {
-          data: { type: "subscriptions", id: subscriptionId },
+  try {
+    const created = await asc(token, "POST", "/v1/subscriptionAppStoreReviewScreenshots", {
+      data: {
+        type: "subscriptionAppStoreReviewScreenshots",
+        attributes: { fileName, fileSize },
+        relationships: {
+          subscription: {
+            data: { type: "subscriptions", id: subscriptionId },
+          },
         },
       },
-    },
-  });
+    });
 
-  const shotId = created.data.id;
-  const uploadOperations =
-    created.data.attributes?.uploadOperations ||
-    created.included?.find((i) => i.type === "uploadOperations") ||
-    [];
+    const shotId = created.data.id;
+    // Prefer attributes.uploadOperations (ASC returns them on create)
+    const ops = created.data.attributes?.uploadOperations ?? [];
+    if (!Array.isArray(ops) || ops.length === 0) {
+      throw new Error(
+        `review screenshot create returned no uploadOperations (id=${shotId}). Retry or upload in Connect UI.`,
+      );
+    }
+    await uploadBinary(ops, bytes);
 
-  // Prefer attributes.uploadOperations (ASC returns them on create)
-  const ops = created.data.attributes?.uploadOperations ?? [];
-  await uploadBinary(ops, bytes);
-
-  await asc(token, "PATCH", `/v1/subscriptionAppStoreReviewScreenshots/${shotId}`, {
-    data: {
-      type: "subscriptionAppStoreReviewScreenshots",
-      id: shotId,
-      attributes: {
-        uploaded: true,
-        sourceFileChecksum: checksum,
+    await asc(token, "PATCH", `/v1/subscriptionAppStoreReviewScreenshots/${shotId}`, {
+      data: {
+        type: "subscriptionAppStoreReviewScreenshots",
+        id: shotId,
+        attributes: {
+          uploaded: true,
+          sourceFileChecksum: checksum,
+        },
       },
-    },
-  });
-  console.log(`  review screenshot committed (${shotId})`);
+    });
+    console.log(`  review screenshot committed (${shotId})`);
+    return { ok: true };
+  } catch (err) {
+    console.error(`  ERROR: review screenshot upload failed (${err.message})`);
+    return { ok: false, reason: err.message };
+  }
 }
 
 async function ensureReviewNote(token, subscriptionId) {
@@ -466,12 +637,152 @@ async function ensureReviewNote(token, subscriptionId) {
   }
 }
 
+/** Cache of all App Store territories (id = territory code, e.g. CAN, USA). */
+let cachedTerritories = null;
+async function listAllTerritories(token) {
+  if (cachedTerritories) return cachedTerritories;
+  const out = [];
+  let path = "/v1/territories?limit=200";
+  while (path) {
+    const page = await asc(token, "GET", path);
+    for (const t of page.data ?? []) {
+      if (t.id) out.push({ type: "territories", id: t.id });
+    }
+    const next = page.links?.next;
+    path = next ? next.replace("https://api.appstoreconnect.apple.com", "") : null;
+  }
+  cachedTerritories = out;
+  return out;
+}
+
+/**
+ * Ensure the subscription is available in all storefronts (incl. new territories).
+ * Without this, API-created products can stay unavailable for sandbox buys.
+ * @returns {{ ok: boolean, reason?: string }}
+ */
+async function ensureAvailability(token, subscriptionId) {
+  if (!subscriptionId) return { ok: false, reason: "missing subscription id" };
+
+  const territories = await listAllTerritories(token);
+  if (territories.length === 0) {
+    console.warn("  WARN: no territories returned — set Availability in Connect UI");
+    return { ok: false, reason: "no territories returned" };
+  }
+
+  let existingId = null;
+  let existingTerritoryCount = 0;
+  let inNew = false;
+
+  try {
+    const existing = await asc(
+      token,
+      "GET",
+      `/v1/subscriptions/${subscriptionId}/subscriptionAvailability?fields[subscriptionAvailabilities]=availableInNewTerritories`,
+    );
+    existingId = existing.data?.id ?? null;
+    inNew = existing.data?.attributes?.availableInNewTerritories === true;
+    if (existingId) {
+      // Paginate related territories (include limit is capped)
+      let path = `/v1/subscriptionAvailabilities/${existingId}/availableTerritories?limit=200`;
+      while (path) {
+        const page = await asc(token, "GET", path);
+        existingTerritoryCount += (page.data ?? []).length;
+        const next = page.links?.next;
+        path = next ? next.replace("https://api.appstoreconnect.apple.com", "") : null;
+      }
+    }
+  } catch (err) {
+    if (err.status && err.status !== 404) {
+      console.warn(`  WARN: could not read availability (${err.message})`);
+    } else {
+      console.log("  no availability yet — setting all territories…");
+    }
+  }
+
+  const complete =
+    Boolean(existingId) &&
+    inNew &&
+    existingTerritoryCount >= Math.floor(territories.length * 0.9);
+
+  if (complete) {
+    console.log(
+      `  availability ok (id=${existingId}, territories=${existingTerritoryCount}, newTerritories=true)`,
+    );
+    return { ok: true };
+  }
+
+  if (existingId) {
+    console.log(
+      `  availability incomplete (newTerritories=${inNew}, territories=${existingTerritoryCount}/${territories.length}) — updating…`,
+    );
+  }
+
+  console.log(
+    `  setting availability: ${territories.length} territories, availableInNewTerritories=true…`,
+  );
+  if (DRY) return { ok: true };
+
+  try {
+    if (existingId) {
+      // Replace territory list + flip availableInNewTerritories via PATCH relationships + attributes
+      try {
+        await asc(token, "PATCH", `/v1/subscriptionAvailabilities/${existingId}`, {
+          data: {
+            type: "subscriptionAvailabilities",
+            id: existingId,
+            attributes: { availableInNewTerritories: true },
+          },
+        });
+      } catch (err) {
+        console.warn(`  WARN: could not PATCH availability attributes (${err.message})`);
+      }
+      await asc(
+        token,
+        "PATCH",
+        `/v1/subscriptionAvailabilities/${existingId}/relationships/availableTerritories`,
+        { data: territories },
+      );
+      console.log("  availability updated");
+      return { ok: true };
+    }
+
+    await asc(token, "POST", "/v1/subscriptionAvailabilities", {
+      data: {
+        type: "subscriptionAvailabilities",
+        attributes: { availableInNewTerritories: true },
+        relationships: {
+          subscription: {
+            data: { type: "subscriptions", id: subscriptionId },
+          },
+          availableTerritories: { data: territories },
+        },
+      },
+    });
+    console.log("  availability ok");
+    return { ok: true };
+  } catch (err) {
+    console.warn(
+      `  WARN: could not set availability (${err.message}). Set Availability → All Countries in Connect UI.`,
+    );
+    return { ok: false, reason: err.message };
+  }
+}
+
 async function main() {
   console.log("== Kept Pro ASC IAP upsert ==");
   console.log(`app=${APP_ID} group=${GROUP_ID} territory=${BASE_TERRITORY}`);
   console.log(`privacy=${PRIVACY_URL}`);
   console.log(`screenshot=${SCREENSHOT_PATH}`);
   if (DRY) console.log("DRY RUN — no writes");
+
+  // Fail fast before touching ASC if review asset is wrong
+  try {
+    const { width, height } = assertReviewScreenshotReady();
+    console.log(`screenshot ok: ${width}×${height}`);
+  } catch (err) {
+    console.error(err.message);
+    process.exit(1);
+  }
 
   const token = makeToken();
 
@@ -485,23 +796,46 @@ async function main() {
   const existing = await listGroupSubscriptions(token);
   console.log(`\ngroup has ${existing.length} subscription(s)`);
 
+  const hardFailures = [];
+
   for (const product of PRODUCTS) {
     console.log(`\n— ${product.productId}`);
     const sub = await ensureSubscription(token, existing, product);
     const id = sub?.id;
+    if (!id && !DRY) {
+      hardFailures.push(`${product.productId}: subscription missing after ensure`);
+      continue;
+    }
     await ensureLocalization(token, id, product);
-    await ensurePrice(token, id, product);
+    const price = await ensurePrice(token, id, product);
+    if (price && price.ok === false) {
+      hardFailures.push(`${product.productId}: price/equalizations — ${price.reason}`);
+    }
+    const avail = await ensureAvailability(token, id);
+    if (avail && avail.ok === false) {
+      hardFailures.push(`${product.productId}: availability — ${avail.reason}`);
+    }
     await ensureReviewNote(token, id);
-    await ensureReviewScreenshot(token, id);
+    const shot = await ensureReviewScreenshot(token, id);
+    if (shot && shot.ok === false) {
+      hardFailures.push(`${product.productId}: review screenshot — ${shot.reason}`);
+    }
   }
 
   console.log(`\nDone.
 Still required in App Store Connect / on device:
-  1. Paid Apps agreement Active (Business → Agreements)
-  2. Sandbox tester (Users and Access → Sandbox)
-  3. Confirm storefront price equalizations if needed
-  4. Archive build 5+ → TestFlight sandbox buy (Apple sheet) → Submit with IAP
+  1. Subscription group Privacy Policy URL = ${PRIVACY_URL} (Connect UI on Kept Pro group)
+  2. Paid Apps agreement Active (Business → Agreements)
+  3. Sandbox tester (Users and Access → Sandbox)
+  4. Merge IAP PR → Xcode Cloud Deploy to TestFlight (or Mac Archive build 5+)
+  5. Sandbox buy (Apple sheet, not Stripe) + Restore → Submit with IAP
 `);
+
+  if (hardFailures.length && !DRY) {
+    console.error("\nASC upsert incomplete — fix before relying on sandbox buys:");
+    for (const f of hardFailures) console.error(`  - ${f}`);
+    process.exit(1);
+  }
 }
 
 main().catch((err) => {

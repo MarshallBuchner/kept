@@ -1,25 +1,51 @@
 # Ship Kept iOS with StoreKit IAP — do now
 
-Status on code/main (already done):
-- Xcode Cloud **Archive - iOS** green on `main`
-- Native shell: TikTok Pixel off; Settings Restore + Manage subscription; no clear-Pro for IAP
+## Status split (read this before Archive)
 
-- Web IAP + Stripe gated off in native shell (live on `https://kept-eosin.vercel.app`)
-- Terms/Privacy mention App Store billing
-- Paywall Apple auto-renew disclosure + Restore
-- Capgo Native Purchases + In-App Purchase capability
-- iOS build **5** (Xcode Cloud auto-bumps via `CI_BUILD_NUMBER`) (`CURRENT_PROJECT_VERSION`)
-- Review screenshot: `docs/ios/screenshots/iap-review-paywall.png`
+**Already on `main` / live web** (`https://kept-eosin.vercel.app`):
+- Xcode Cloud **Archive - iOS** green; iOS build **5** (`CURRENT_PROJECT_VERSION`; Cloud auto-bumps via `CI_BUILD_NUMBER`)
+- Capgo Native Purchases + Stripe gated off in the native shell; Settings Restore + Manage
+- Paywall Apple auto-renew disclosure; Terms/Privacy mention App Store billing
+- ASC upsert workflow (manual **Run workflow**) — needs GitHub `ASC_*` secrets
+
+**Only on PR [#65](https://github.com/MarshallBuchner/kept/pull/65) — merge before Archive/TestFlight:**
+- **In-App Purchase** capability (`com.apple.InAppPurchase`) + StoreKit.framework linked
+- Quiet StoreKit entitlement sync (launch + foreground + Capgo `transactionUpdated`)
+- App Privacy Manifest (`PrivacyInfo.xcprivacy`)
+- Hardened ASC upsert (equalizations, all-territory availability, screenshot replace/size gates) + auto-run on `main` when secrets exist
+- `npm run ios:iap:verify` gate + review PNG 1290×2796 + scheme → `Products.storekit`
+
+Do **not** Archive from current `main` expecting IAP capability — that lands with #65.
+
+## 0) Confirm repo is ready
+
+```bash
+git pull
+npm run ios:iap:verify            # product IDs, Stripe gate, restore UI, build ≥5, live legal
+# Optional ASC dry-run (needs secrets or .p8):
+npm run ios:iap:asc -- --dry-run
+```
+
+CI also runs `ios:iap:verify` on pushes/PRs that touch the repo (`Verify IAP repo readiness`).
 
 ## A) App Store Connect (you)
 
-1. **Monthly** Review Information → upload  
-   https://raw.githubusercontent.com/MarshallBuchner/kept/main/docs/ios/screenshots/iap-review-paywall.png  
+Product IDs (must match code exactly):
+
+| Product ID | Duration | Price |
+| --- | --- | --- |
+| `ca.keptapp.app.pro.monthly` | 1 Month | CA$2.99 |
+| `ca.keptapp.app.pro.yearly` | 1 Year | CA$19.99 |
+
+1. **Monthly** (`ca.keptapp.app.pro.monthly`) Review Information → upload the local file  
+   `docs/ios/screenshots/iap-review-paywall.png` (must be ~1290×2796 — after merge + `git pull`).  
+   Prefer **Actions → ASC upsert Kept Pro IAP** so the size-validated PNG is uploaded for both products.  
    Save. Do **not** Add for Review yet.
 2. **‹ Kept Pro** → create **Yearly**  
    - Product ID: `ca.keptapp.app.pro.yearly`  
-   - Duration: 1 Year → Create → price **CA$19.99** → localization → same screenshot
-3. Group: display name **Kept Pro** + Privacy URL `https://kept-eosin.vercel.app/privacy`
+   - Duration: 1 Year → Create → price **CA$19.99** → localization → same local screenshot
+3. Group: display name **Kept Pro** + Privacy URL `https://kept-eosin.vercel.app/privacy`  
+   Put monthly + yearly at the **same subscription level** (level 1) so plan switches are crossgrades.
 4. **Business → Agreements**: Paid Apps **Active** (tax + banking)
 5. **Users and Access → Sandbox → Testers**: create a tester
 
@@ -33,7 +59,9 @@ Status on code/main (already done):
    - `ASC_ISSUER_ID`
    - `ASC_KEY_ID`
    - `ASC_PRIVATE_KEY` (full `.p8` PEM text)
-3. **Actions → ASC upsert Kept Pro IAP → Run workflow**
+3. **Actions → ASC upsert Kept Pro IAP → Run workflow** (works on `main` today)  
+   After this PR merges, the same workflow also **auto-runs** on relevant pushes to `main` when secrets exist.
+4. Still merge this PR before Archive/TestFlight (adds In-App Purchase capability + hardened StoreKit sync).
 
 ### Option 2 — local Mac
 
@@ -47,24 +75,28 @@ export ASC_PRIVATE_KEY_PATH="$HOME/AuthKey_XXX.p8"
 npm run ios:iap:asc
 ```
 
-Either path creates/updates monthly+yearly, localizations, CAN price, **review screenshots**, review notes, group name, and app privacy URL.
+Either path creates/updates monthly+yearly, localizations, CAN price + **equalized storefront prices**, **all-territory availability**, **review screenshots**, review notes, group display name, and **app** privacy URL.
 
-Still finish Paid Apps + sandbox after.
+Still finish in Connect UI after API/UI create:
+- Subscription group **Privacy Policy URL** (`https://kept-eosin.vercel.app/privacy`)
+- Paid Apps Active + sandbox tester
 
-## B) Mac Archive → TestFlight
+## B) TestFlight (prefer Xcode Cloud) — only after #65 is on `main`
+
+**Preferred:** App Store Connect → Xcode Cloud → Archive workflow on post-merge `main` → **Post-Actions → Deploy to TestFlight** (see `docs/ios/MAC.md`). Enable the post-action if missing, then install the Cloud build.
+
+**Else Mac Archive:**
 
 ```bash
 cd ~/Desktop/kept   # or your clone path
-git checkout main && git pull
+git checkout main && git pull   # must include #65
 ./scripts/ios-iap-sync.sh
 ```
 
 In Xcode:
-1. Signing & Capabilities → confirm **In-App Purchase**
+1. Signing & Capabilities → **In-App Purchase** should already be listed (from #65). Confirm your Team is selected.
 2. Any iOS Device (arm64) → **Product → Archive** → Distribute → App Store Connect
 3. Wait for TestFlight build **1.0 (5)** (or higher)
-
-Optional: if Xcode Cloud workflow has a TestFlight post-action, check TestFlight for a Cloud build first (Archive on `main` is green).
 
 ## C) Sandbox purchase (required before Submit)
 
