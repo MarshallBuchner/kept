@@ -209,10 +209,34 @@ if (
     "PaywallSheet missing Guideline 3.1.2 disclosure (auto-renew, renewal price, Terms of Use (EULA), Privacy Policy)",
   );
 }
-if (asc.includes("assertReviewScreenshotReady") || asc.includes("readUInt32BE(16)")) {
+if (
+  asc.includes("assertReviewScreenshotReady") ||
+  asc.includes("readUInt32BE(16)")
+) {
   ok("asc-screenshot-gate", "ASC upsert validates review screenshot size");
 } else {
   fail("asc-screenshot-gate", "asc-upsert-iap.mjs should hard-fail bad/missing review screenshots");
+}
+if (
+  asc.includes("DELETE") &&
+  asc.includes("subscriptionAppStoreReviewScreenshots") &&
+  /removing existing review screenshot|re-upload/i.test(asc)
+) {
+  ok("asc-screenshot-replace", "ASC upsert replaces an existing review screenshot");
+} else {
+  fail(
+    "asc-screenshot-replace",
+    "asc-upsert-iap.mjs should DELETE + re-upload review screenshots so bad Connect assets are replaced",
+  );
+}
+const shipNow = exists("docs/ios/SHIP_NOW.md") ? read("docs/ios/SHIP_NOW.md") : "";
+if (/raw\.githubusercontent\.com\/.*\/main\/.*iap-review/i.test(shipNow)) {
+  fail(
+    "ship-now-screenshot-url",
+    "SHIP_NOW.md must not point Connect UI at raw main screenshot (may be wrong size pre-merge)",
+  );
+} else {
+  ok("ship-now-screenshot-url", "SHIP_NOW uses local/ASC screenshot path, not raw main URL");
 }
 if (
   iap.includes("manageProSubscriptions") &&

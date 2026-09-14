@@ -34,12 +34,13 @@ Product IDs (must match code exactly):
 | `ca.keptapp.app.pro.monthly` | 1 Month | CA$2.99 |
 | `ca.keptapp.app.pro.yearly` | 1 Year | CA$19.99 |
 
-1. **Monthly** (`ca.keptapp.app.pro.monthly`) Review Information → upload  
-   https://raw.githubusercontent.com/MarshallBuchner/kept/main/docs/ios/screenshots/iap-review-paywall.png  
+1. **Monthly** (`ca.keptapp.app.pro.monthly`) Review Information → upload the local file  
+   `docs/ios/screenshots/iap-review-paywall.png` (must be ~1290×2796 — after merge + `git pull`).  
+   Prefer **Actions → ASC upsert Kept Pro IAP** so the size-validated PNG is uploaded for both products.  
    Save. Do **not** Add for Review yet.
 2. **‹ Kept Pro** → create **Yearly**  
    - Product ID: `ca.keptapp.app.pro.yearly`  
-   - Duration: 1 Year → Create → price **CA$19.99** → localization → same screenshot
+   - Duration: 1 Year → Create → price **CA$19.99** → localization → same local screenshot
 3. Group: display name **Kept Pro** + Privacy URL `https://kept-eosin.vercel.app/privacy`  
    Put monthly + yearly at the **same subscription level** (level 1) so plan switches are crossgrades.
 4. **Business → Agreements**: Paid Apps **Active** (tax + banking)

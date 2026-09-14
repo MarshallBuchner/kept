@@ -546,7 +546,7 @@ async function ensureReviewScreenshot(token, subscriptionId) {
     return { ok: false, reason: err.message };
   }
 
-  // Skip if one already linked
+  // Replace any existing linked screenshot so a bad Connect asset cannot stick forever.
   try {
     const existingShot = await asc(
       token,
@@ -554,11 +554,17 @@ async function ensureReviewScreenshot(token, subscriptionId) {
       `/v1/subscriptions/${subscriptionId}/appStoreReviewScreenshot`,
     );
     if (existingShot.data?.id) {
-      console.log(`  review screenshot already linked (${existingShot.data.id})`);
-      return { ok: true };
+      const oldId = existingShot.data.id;
+      console.log(`  removing existing review screenshot (${oldId}) before re-upload…`);
+      if (!DRY) {
+        await asc(token, "DELETE", `/v1/subscriptionAppStoreReviewScreenshots/${oldId}`);
+      }
     }
-  } catch {
-    // 404 = none yet
+  } catch (err) {
+    // 404 = none yet; other errors still attempt upload
+    if (err.status && err.status !== 404) {
+      console.warn(`  WARN: could not read/delete existing screenshot (${err.message})`);
+    }
   }
 
   const fileName = path.basename(SCREENSHOT_PATH);
