@@ -9,6 +9,8 @@
  *        export ASC_ISSUER_ID='xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'
  *        export ASC_KEY_ID='XXXXXXXXXX'
  *        export ASC_PRIVATE_KEY_PATH="$HOME/AuthKey_XXXXXXXXXX.p8"
+ *      Or paste the key body (GitHub Actions):
+ *        export ASC_PRIVATE_KEY='-----BEGIN PRIVATE KEY-----…'
  *
  * Optional overrides:
  *   ASC_APP_ID             (default: 6811619551 — Kept Scan)
@@ -72,8 +74,18 @@ function requireEnv(name) {
 function makeToken() {
   const issuerId = requireEnv("ASC_ISSUER_ID");
   const keyId = requireEnv("ASC_KEY_ID");
-  const keyPath = requireEnv("ASC_PRIVATE_KEY_PATH");
-  const pem = fs.readFileSync(path.resolve(keyPath), "utf8");
+  let pem = process.env.ASC_PRIVATE_KEY?.trim() || "";
+  if (pem) {
+    // GitHub secrets often store literal \n — normalize to real newlines
+    pem = pem.replace(/\\n/g, "\n");
+    if (!pem.includes("BEGIN")) {
+      // Allow base64-encoded .p8 contents
+      pem = Buffer.from(pem, "base64").toString("utf8");
+    }
+  } else {
+    const keyPath = requireEnv("ASC_PRIVATE_KEY_PATH");
+    pem = fs.readFileSync(path.resolve(keyPath), "utf8");
+  }
 
   const now = Math.floor(Date.now() / 1000);
   const header = Buffer.from(

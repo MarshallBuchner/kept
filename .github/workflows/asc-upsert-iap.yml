@@ -1,0 +1,66 @@
+name: ASC upsert Kept Pro IAP
+
+# Marshall: add repo secrets, then Actions → ASC upsert Kept Pro IAP → Run workflow
+# Secrets (Settings → Secrets and variables → Actions):
+#   ASC_ISSUER_ID
+#   ASC_KEY_ID
+#   ASC_PRIVATE_KEY   (full .p8 PEM contents, including BEGIN/END lines)
+# Optional secrets/vars:
+#   ASC_APP_ID (default 6811619551)
+#   ASC_GROUP_ID (default 22382931)
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (no writes to App Store Connect)"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  upsert:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Require ASC secrets
+        env:
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: |
+          missing=0
+          for v in ASC_ISSUER_ID ASC_KEY_ID ASC_PRIVATE_KEY; do
+            if [ -z "${!v}" ]; then
+              echo "Missing secret: $v" >&2
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "Add ASC_ISSUER_ID, ASC_KEY_ID, ASC_PRIVATE_KEY under Settings → Secrets → Actions, then re-run." >&2
+            exit 1
+          fi
+
+      - name: Upsert subscriptions
+        env:
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+          ASC_APP_ID: ${{ secrets.ASC_APP_ID }}
+          ASC_GROUP_ID: ${{ secrets.ASC_GROUP_ID }}
+        run: |
+          args=()
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            args+=(--dry-run)
+          fi
+          node scripts/asc-upsert-iap.mjs "${args[@]}"

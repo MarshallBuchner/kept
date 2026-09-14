@@ -26,7 +26,16 @@ Status on code/main (already done):
 
 ## Optional: create products via API (instead of Connect UI)
 
-If you have an App Store Connect API key:
+### Option 1 — GitHub Actions (recommended)
+
+1. Create an App Store Connect API key (Users and Access → Integrations)
+2. Repo **Settings → Secrets and variables → Actions** → add:
+   - `ASC_ISSUER_ID`
+   - `ASC_KEY_ID`
+   - `ASC_PRIVATE_KEY` (full `.p8` PEM text)
+3. **Actions → ASC upsert Kept Pro IAP → Run workflow**
+
+### Option 2 — local Mac
 
 ```bash
 export ASC_ISSUER_ID='…'
@@ -38,7 +47,7 @@ export ASC_PRIVATE_KEY_PATH="$HOME/AuthKey_XXX.p8"
 npm run ios:iap:asc
 ```
 
-This creates/updates monthly+yearly, localizations, CAN price, **review screenshots**, review notes, group name, and app privacy URL.
+Either path creates/updates monthly+yearly, localizations, CAN price, **review screenshots**, review notes, group name, and app privacy URL.
 
 Still finish Paid Apps + sandbox after.
 
