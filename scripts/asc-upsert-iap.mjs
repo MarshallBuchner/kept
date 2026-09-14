@@ -51,6 +51,7 @@ const PRODUCTS = [
     displayName: "Kept Pro Monthly",
     description: "Unlimited scans and PDF exports, billed monthly.",
     customerPrice: "2.99",
+    groupLevel: 1,
   },
   {
     productId: "ca.keptapp.app.pro.yearly",
@@ -59,6 +60,7 @@ const PRODUCTS = [
     displayName: "Kept Pro Yearly",
     description: "Unlimited scans and PDF exports, billed yearly. Best value.",
     customerPrice: "19.99",
+    groupLevel: 1,
   },
 ];
 
@@ -149,6 +151,27 @@ async function ensureSubscription(token, existing, product) {
   );
   if (found) {
     console.log(`OK exists ${product.productId} (id=${found.id})`);
+    const currentLevel = found.attributes?.groupLevel;
+    if (currentLevel != null && currentLevel !== product.groupLevel) {
+      console.log(
+        `  groupLevel ${currentLevel} → ${product.groupLevel} (same-level crossgrade with sibling plan)`,
+      );
+      if (!DRY) {
+        try {
+          await asc(token, "PATCH", `/v1/subscriptions/${found.id}`, {
+            data: {
+              type: "subscriptions",
+              id: found.id,
+              attributes: { groupLevel: product.groupLevel },
+            },
+          });
+        } catch (err) {
+          console.warn(
+            `  WARN: could not set groupLevel (${err.message}). Set both plans to level 1 in Connect UI.`,
+          );
+        }
+      }
+    }
     return found;
   }
 
@@ -166,6 +189,7 @@ async function ensureSubscription(token, existing, product) {
         productId: product.productId,
         subscriptionPeriod: product.period,
         familySharable: false,
+        groupLevel: product.groupLevel,
       },
       relationships: {
         group: {

@@ -38,7 +38,8 @@ Product IDs (must match code exactly):
 2. **‹ Kept Pro** → create **Yearly**  
    - Product ID: `ca.keptapp.app.pro.yearly`  
    - Duration: 1 Year → Create → price **CA$19.99** → localization → same screenshot
-3. Group: display name **Kept Pro** + Privacy URL `https://kept-eosin.vercel.app/privacy`
+3. Group: display name **Kept Pro** + Privacy URL `https://kept-eosin.vercel.app/privacy`  
+   Put monthly + yearly at the **same subscription level** (level 1) so plan switches are crossgrades.
 4. **Business → Agreements**: Paid Apps **Active** (tax + banking)
 5. **Users and Access → Sandbox → Testers**: create a tester
 

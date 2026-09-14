@@ -124,6 +124,21 @@ for (const method of [
 if (iap.includes("PURCHASE_TYPE.SUBS")) ok("capgo:PURCHASE_TYPE.SUBS");
 else fail("capgo:PURCHASE_TYPE.SUBS", "iap.ts must request subscription products");
 
+// --- StoreKit config: monthly+yearly same subscription level (crossgrades) ---
+const storekitRel = "ios/App/App/Products.storekit";
+if (exists(storekitRel)) {
+  const sk = read(storekitRel);
+  const levels = [...sk.matchAll(/"groupNumber"\s*:\s*(\d+)/g)].map((m) => Number(m[1]));
+  if (levels.length >= 2 && levels.every((n) => n === levels[0])) {
+    ok("storekit-group-level", `same level ${levels[0]} for ${levels.length} products`);
+  } else {
+    fail(
+      "storekit-group-level",
+      `expected identical groupNumber for all subs, got ${levels.join(",") || "none"}`,
+    );
+  }
+}
+
 // --- Review screenshot dimensions (IAP review prefers phone-sized PNG) ---
 const shotRel = "docs/ios/screenshots/iap-review-paywall.png";
 if (exists(shotRel)) {
