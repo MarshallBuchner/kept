@@ -11,9 +11,13 @@
  *        export ASC_PRIVATE_KEY_PATH="$HOME/AuthKey_XXXXXXXXXX.p8"
  *
  * Optional overrides:
- *   ASC_APP_ID          (default: 6811619551 — Kept Scan)
- *   ASC_GROUP_ID        (default: 22382931 — Kept Pro)
- *   ASC_BASE_TERRITORY  (default: CAN for CA$ prices)
+ *   ASC_APP_ID             (default: 6811619551 — Kept Scan)
+ *   ASC_GROUP_ID           (default: 22382931 — Kept Pro)
+ *   ASC_BASE_TERRITORY     (default: CAN for CA$ prices)
+ *   ASC_PRIVACY_URL        (default: https://kept-eosin.vercel.app/privacy)
+ *   ASC_REVIEW_SCREENSHOT  (default: docs/ios/screenshots/iap-review-paywall.png)
+ *
+ * Also upserts: group localizations, app privacy URL, review notes, review screenshots.
  *
  * Usage:
  *   node scripts/asc-upsert-iap.mjs

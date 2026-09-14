@@ -38,7 +38,9 @@ export ASC_PRIVATE_KEY_PATH="$HOME/AuthKey_XXX.p8"
 npm run ios:iap:asc
 ```
 
-Still upload the review screenshot and finish Paid Apps + sandbox after.
+This creates/updates monthly+yearly, localizations, CAN price, **review screenshots**, review notes, group name, and app privacy URL.
+
+Still finish Paid Apps + sandbox after.
 
 ## B) Mac Archive → TestFlight
 
