@@ -10,6 +10,19 @@
 | Ads / traffic | Running or submitted on `https://kept-eosin.vercel.app/welcome` |
 | Domain buy/attach | **Deferred** — not required for current ship path |
 
+### Active ship priority — iOS App Store + StoreKit IAP
+
+Follow **[`docs/ios/SHIP_NOW.md`](../ios/SHIP_NOW.md)** end-to-end.
+
+Fast Connect path:
+
+1. Create ASC API key → add GitHub secrets `ASC_ISSUER_ID`, `ASC_KEY_ID`, `ASC_PRIVATE_KEY`
+2. Actions → **ASC upsert Kept Pro IAP** → Run workflow
+3. Paid Apps Active + Sandbox tester
+4. Mac: `git pull && ./scripts/ios-iap-sync.sh` → Archive → TestFlight sandbox buy (Apple sheet) → Submit with IAP
+
+Do **not** submit a Stripe-only binary.
+
 ### Current production URL (ads, bio, App Store links)
 
 `https://kept-eosin.vercel.app`  
