@@ -56,7 +56,8 @@ Product IDs (must match code exactly):
    - `ASC_ISSUER_ID`
    - `ASC_KEY_ID`
    - `ASC_PRIVATE_KEY` (full `.p8` PEM text)
-3. **Actions → ASC upsert Kept Pro IAP → Run workflow**
+3. Merge this IAP PR to `main` — ASC upsert **auto-runs** when secrets are present  
+   (or **Actions → ASC upsert Kept Pro IAP → Run workflow** anytime)
 
 ### Option 2 — local Mac
 

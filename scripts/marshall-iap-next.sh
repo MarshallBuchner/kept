@@ -17,12 +17,13 @@ cat <<'EOF'
 1) Merge PR #65 (ios:iap:verify + IAP capability + privacy manifest)
    https://github.com/MarshallBuchner/kept/pull/65
 
-2) App Store Connect API → GitHub secrets, then run ASC upsert
+2) App Store Connect API → GitHub secrets (then merge or Run workflow)
    Settings → Secrets → Actions:
      ASC_ISSUER_ID
      ASC_KEY_ID
      ASC_PRIVATE_KEY   (full .p8 PEM)
-   Actions → ASC upsert Kept Pro IAP → Run workflow
+   After secrets exist: merge PR #65 to main → ASC upsert auto-runs
+   Or Actions → ASC upsert Kept Pro IAP → Run workflow
    Or Connect UI: monthly+yearly + review screenshot + group Privacy URL
    Product IDs (exact):
      ca.keptapp.app.pro.monthly

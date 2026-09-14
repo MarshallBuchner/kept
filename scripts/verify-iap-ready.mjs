@@ -57,6 +57,27 @@ for (const rel of requiredFiles) {
   else fail(`file:${rel}`, "missing");
 }
 
+const wf = exists(".github/workflows/asc-upsert-iap.yml")
+  ? read(".github/workflows/asc-upsert-iap.yml")
+  : "";
+if (wf.includes("workflow_dispatch") && wf.includes("ASC_PRIVATE_KEY")) {
+  ok("asc-workflow", "manual ASC upsert workflow present");
+} else {
+  fail("asc-workflow", "asc-upsert-iap.yml missing workflow_dispatch / ASC_PRIVATE_KEY");
+}
+if (
+  /branches:\s*\[main\]/.test(wf) &&
+  wf.includes("ASC secrets not configured") &&
+  wf.includes("ready=false")
+) {
+  ok("asc-auto-main", "ASC upsert auto-runs on main when secrets exist (skips if missing)");
+} else {
+  fail(
+    "asc-auto-main",
+    "asc-upsert-iap.yml should push-trigger on main and soft-skip when secrets are missing",
+  );
+}
+
 // --- Product IDs ---
 const iap = exists("src/lib/iap.ts") ? read("src/lib/iap.ts") : "";
 const storekit = exists("ios/App/App/Products.storekit")
