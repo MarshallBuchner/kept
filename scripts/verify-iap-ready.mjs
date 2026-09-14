@@ -130,11 +130,23 @@ if (entitlementSync.includes("appStateChange")) {
   fail("iap-foreground-sync", "IapEntitlementSync should listen for appStateChange");
 }
 
-// --- ASC upsert covers availability ---
+// --- ASC upsert covers availability + equalizations ---
 if (asc.includes("subscriptionAvailabilities") || asc.includes("ensureAvailability")) {
   ok("asc-availability", "upsert sets territory availability");
 } else {
   fail("asc-availability", "asc-upsert-iap.mjs should POST subscriptionAvailabilities");
+}
+if (
+  asc.includes("ensureEqualizedPrices") ||
+  asc.includes("adjustedEqualizations") ||
+  asc.includes("/equalizations")
+) {
+  ok("asc-price-equalizations", "upsert applies storefront price equalizations");
+} else {
+  fail(
+    "asc-price-equalizations",
+    "asc-upsert-iap.mjs should apply equalizations after base CAN price",
+  );
 }
 
 // --- Repo Terms/Privacy IAP copy (in addition to live fetch) ---

@@ -69,12 +69,11 @@ export ASC_PRIVATE_KEY_PATH="$HOME/AuthKey_XXX.p8"
 npm run ios:iap:asc
 ```
 
-Either path creates/updates monthly+yearly, localizations, CAN price, **all-territory availability**, **review screenshots**, review notes, group display name, and **app** privacy URL.
+Either path creates/updates monthly+yearly, localizations, CAN price + **equalized storefront prices**, **all-territory availability**, **review screenshots**, review notes, group display name, and **app** privacy URL.
 
 Still finish in Connect UI after API/UI create:
 - Subscription group **Privacy Policy URL** (`https://kept-eosin.vercel.app/privacy`)
 - Paid Apps Active + sandbox tester
-- Price equalizations for other storefronts if needed
 
 ## B) TestFlight (prefer Xcode Cloud)
 

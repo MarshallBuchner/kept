@@ -20,7 +20,8 @@
  *   ASC_REVIEW_SCREENSHOT  (default: docs/ios/screenshots/iap-review-paywall.png)
  *
  * Also upserts: group localizations, app privacy URL, review notes, review screenshots,
- * and subscription territory availability (all storefronts + new territories).
+ * subscription territory availability (all storefronts + new territories), and
+ * storefront price equalizations from the CAN base price.
  *
  * Usage:
  *   node scripts/asc-upsert-iap.mjs
@@ -236,6 +237,117 @@ async function ensureLocalization(token, subscriptionId, product) {
   }
 }
 
+/** Paginate current subscription prices; return Set of pricePoint ids already applied. */
+async function listCurrentPricePointIds(token, subscriptionId) {
+  const ids = new Set();
+  let path =
+    `/v1/subscriptions/${subscriptionId}/prices?limit=200&include=subscriptionPricePoint,territory`;
+  while (path) {
+    const page = await asc(token, "GET", path);
+    for (const price of page.data ?? []) {
+      const rel = price.relationships?.subscriptionPricePoint?.data?.id;
+      if (rel) ids.add(rel);
+    }
+    const next = page.links?.next;
+    path = next ? next.replace("https://api.appstoreconnect.apple.com", "") : null;
+  }
+  return ids;
+}
+
+async function postSubscriptionPrice(token, subscriptionId, pricePointId) {
+  await asc(token, "POST", "/v1/subscriptionPrices", {
+    data: {
+      type: "subscriptionPrices",
+      attributes: { startDate: null },
+      relationships: {
+        subscription: {
+          data: { type: "subscriptions", id: subscriptionId },
+        },
+        subscriptionPricePoint: {
+          data: { type: "subscriptionPricePoints", id: pricePointId },
+        },
+      },
+    },
+  });
+}
+
+/**
+ * Apply Apple’s equalized (prefer adjusted) price points for every storefront.
+ * Needed so sandbox / Review outside CAN can buy without manual “Add all equalizations”.
+ */
+async function ensureEqualizedPrices(token, subscriptionId, basePricePointId) {
+  let path =
+    `/v1/subscriptionPricePoints/${basePricePointId}/adjustedEqualizations` +
+    `?limit=200&include=territory`;
+  let eqs = [];
+  let used = "adjustedEqualizations";
+  try {
+    while (path) {
+      const page = await asc(token, "GET", path);
+      eqs = eqs.concat(page.data ?? []);
+      const next = page.links?.next;
+      path = next ? next.replace("https://api.appstoreconnect.apple.com", "") : null;
+    }
+  } catch (err) {
+    console.warn(
+      `  WARN: adjustedEqualizations failed (${err.message}); trying equalizations…`,
+    );
+    used = "equalizations";
+    path =
+      `/v1/subscriptionPricePoints/${basePricePointId}/equalizations` +
+      `?limit=200&include=territory`;
+    eqs = [];
+    try {
+      while (path) {
+        const page = await asc(token, "GET", path);
+        eqs = eqs.concat(page.data ?? []);
+        const next = page.links?.next;
+        path = next ? next.replace("https://api.appstoreconnect.apple.com", "") : null;
+      }
+    } catch (err2) {
+      console.warn(
+        `  WARN: could not list ${used} (${err2.message}). Add equalizations in Connect UI.`,
+      );
+      return;
+    }
+  }
+
+  if (eqs.length === 0) {
+    console.warn("  WARN: no equalizations returned — set other storefront prices in Connect UI");
+    return;
+  }
+
+  console.log(`  equalizations (${used}): ${eqs.length} storefront price points`);
+  if (DRY) return;
+
+  const have = await listCurrentPricePointIds(token, subscriptionId);
+  let added = 0;
+  let skipped = 0;
+  let failed = 0;
+  for (const pp of eqs) {
+    if (!pp?.id) continue;
+    if (have.has(pp.id)) {
+      skipped += 1;
+      continue;
+    }
+    try {
+      await postSubscriptionPrice(token, subscriptionId, pp.id);
+      have.add(pp.id);
+      added += 1;
+    } catch (err) {
+      failed += 1;
+      if (failed <= 3) {
+        console.warn(
+          `  WARN: could not set equalized price ${pp.id} (${err.message})`,
+        );
+      }
+    }
+  }
+  console.log(
+    `  equalizations applied: +${added}, already ${skipped}, failed ${failed}`,
+  );
+}
+
 async function ensurePrice(token, subscriptionId, product) {
   if (!subscriptionId) return;
   console.log(
@@ -276,44 +388,20 @@ async function ensurePrice(token, subscriptionId, product) {
   console.log(
     `  using pricePoint ${match.id} (customerPrice=${match.attributes?.customerPrice})`,
   );
-  if (DRY) return;
-
-  // Current prices
-  const current = await asc(
-    token,
-    "GET",
-    `/v1/subscriptions/${subscriptionId}/prices?limit=50&include=subscriptionPricePoint,territory`,
-  );
-  const already = (current.data ?? []).some((price) => {
-    const rel = price.relationships?.subscriptionPricePoint?.data?.id;
-    return rel === match.id;
-  });
-  if (already) {
-    console.log("  price already set");
+  if (DRY) {
+    console.log("  (dry-run) skip base price + equalizations");
     return;
   }
 
-  // Set base territory price immediately; equalizations can be done in UI or follow-up
-  await asc(token, "POST", "/v1/subscriptionPrices", {
-    data: {
-      type: "subscriptionPrices",
-      attributes: {
-        startDate: null,
-      },
-      relationships: {
-        subscription: {
-          data: { type: "subscriptions", id: subscriptionId },
-        },
-        subscriptionPricePoint: {
-          data: { type: "subscriptionPricePoints", id: match.id },
-        },
-      },
-    },
-  });
-  console.log(`  set ${BASE_TERRITORY} price`);
-  console.log(
-    "  NOTE: In Connect, use “Add all equalizations” (or price edit) for other storefronts.",
-  );
+  const have = await listCurrentPricePointIds(token, subscriptionId);
+  if (have.has(match.id)) {
+    console.log(`  ${BASE_TERRITORY} price already set`);
+  } else {
+    await postSubscriptionPrice(token, subscriptionId, match.id);
+    console.log(`  set ${BASE_TERRITORY} price`);
+  }
+
+  await ensureEqualizedPrices(token, subscriptionId, match.id);
 }
 
 async function ensureGroupLocalizations(token) {
@@ -516,27 +604,33 @@ async function listAllTerritories(token) {
 async function ensureAvailability(token, subscriptionId) {
   if (!subscriptionId) return;
 
+  const territories = await listAllTerritories(token);
+  if (territories.length === 0) {
+    console.warn("  WARN: no territories returned — set Availability in Connect UI");
+    return;
+  }
+
+  let existingId = null;
+  let existingTerritoryCount = 0;
+  let inNew = false;
+
   try {
     const existing = await asc(
       token,
       "GET",
-      `/v1/subscriptions/${subscriptionId}/subscriptionAvailability?include=availableTerritories&limit[availableTerritories]=50`,
+      `/v1/subscriptions/${subscriptionId}/subscriptionAvailability?fields[subscriptionAvailabilities]=availableInNewTerritories`,
     );
-    if (existing.data?.id) {
-      const inNew = existing.data.attributes?.availableInNewTerritories;
-      const included = (existing.included ?? []).filter(
-        (r) => r.type === "territories",
-      ).length;
-      // Heuristic: already configured if availableInNewTerritories and at least one territory
-      if (inNew === true && included > 0) {
-        console.log(
-          `  availability ok (id=${existing.data.id}, territories≈${included}+, newTerritories=true)`,
-        );
-        return;
+    existingId = existing.data?.id ?? null;
+    inNew = existing.data?.attributes?.availableInNewTerritories === true;
+    if (existingId) {
+      // Paginate related territories (include limit is capped)
+      let path = `/v1/subscriptionAvailabilities/${existingId}/availableTerritories?limit=200`;
+      while (path) {
+        const page = await asc(token, "GET", path);
+        existingTerritoryCount += (page.data ?? []).length;
+        const next = page.links?.next;
+        path = next ? next.replace("https://api.appstoreconnect.apple.com", "") : null;
       }
-      console.log(
-        `  availability exists but incomplete (newTerritories=${inNew}, territories≈${included}) — re-posting all territories…`,
-      );
     }
   } catch (err) {
     if (err.status && err.status !== 404) {
@@ -546,10 +640,22 @@ async function ensureAvailability(token, subscriptionId) {
     }
   }
 
-  const territories = await listAllTerritories(token);
-  if (territories.length === 0) {
-    console.warn("  WARN: no territories returned — set Availability in Connect UI");
+  const complete =
+    Boolean(existingId) &&
+    inNew &&
+    existingTerritoryCount >= Math.floor(territories.length * 0.9);
+
+  if (complete) {
+    console.log(
+      `  availability ok (id=${existingId}, territories=${existingTerritoryCount}, newTerritories=true)`,
+    );
     return;
+  }
+
+  if (existingId) {
+    console.log(
+      `  availability incomplete (newTerritories=${inNew}, territories=${existingTerritoryCount}/${territories.length}) — updating…`,
+    );
   }
 
   console.log(
@@ -558,6 +664,29 @@ async function ensureAvailability(token, subscriptionId) {
   if (DRY) return;
 
   try {
+    if (existingId) {
+      // Replace territory list + flip availableInNewTerritories via PATCH relationships + attributes
+      try {
+        await asc(token, "PATCH", `/v1/subscriptionAvailabilities/${existingId}`, {
+          data: {
+            type: "subscriptionAvailabilities",
+            id: existingId,
+            attributes: { availableInNewTerritories: true },
+          },
+        });
+      } catch (err) {
+        console.warn(`  WARN: could not PATCH availability attributes (${err.message})`);
+      }
+      await asc(
+        token,
+        "PATCH",
+        `/v1/subscriptionAvailabilities/${existingId}/relationships/availableTerritories`,
+        { data: territories },
+      );
+      console.log("  availability updated");
+      return;
+    }
+
     await asc(token, "POST", "/v1/subscriptionAvailabilities", {
       data: {
         type: "subscriptionAvailabilities",
@@ -613,9 +742,8 @@ Still required in App Store Connect / on device:
   1. Subscription group Privacy Policy URL = ${PRIVACY_URL} (Connect UI on Kept Pro group)
   2. Paid Apps agreement Active (Business → Agreements)
   3. Sandbox tester (Users and Access → Sandbox)
-  4. Confirm storefront price equalizations if needed
-  5. Merge IAP PR → Xcode Cloud Deploy to TestFlight (or Mac Archive build 5+)
-  6. Sandbox buy (Apple sheet, not Stripe) + Restore → Submit with IAP
+  4. Merge IAP PR → Xcode Cloud Deploy to TestFlight (or Mac Archive build 5+)
+  5. Sandbox buy (Apple sheet, not Stripe) + Restore → Submit with IAP
 `);
 }
 
