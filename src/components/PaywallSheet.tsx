@@ -9,7 +9,12 @@ import {
   getUsage,
 } from "@/lib/billing";
 import { startProCheckout, redeemLifetimePromo, type CheckoutPlan } from "@/lib/checkout";
-import { loadIapProducts, restoreProIap, type IapProductInfo } from "@/lib/iap";
+import {
+  loadIapProducts,
+  manageProSubscriptions,
+  restoreProIap,
+  type IapProductInfo,
+} from "@/lib/iap";
 import { isNativeIOS } from "@/lib/platform";
 
 export type PaywallReason = "scan_limit" | "export_limit" | "upgrade";
@@ -178,7 +183,7 @@ export function PaywallSheet({
 
         <button
           type="button"
-          disabled={busy || iapLoading}
+          disabled={busy || iapLoading || (nativeIOS && iapProducts.length === 0)}
           onClick={() => void upgrade()}
           className="mt-4 w-full rounded-[16px] bg-accent px-4 py-[15px] text-[16px] font-semibold text-white disabled:opacity-60"
         >
@@ -208,6 +213,21 @@ export function PaywallSheet({
               className="mt-2 w-full py-2 text-[13px] font-medium text-muted underline-offset-2 hover:underline disabled:opacity-50"
             >
               Restore purchases
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                void (async () => {
+                  const result = await manageProSubscriptions();
+                  if (!result.ok) {
+                    setError(result.message ?? "Could not open subscription settings.");
+                  }
+                })();
+              }}
+              className="mt-1 w-full py-2 text-[13px] font-medium text-muted underline-offset-2 hover:underline disabled:opacity-50"
+            >
+              Manage subscription
             </button>
           </>
         ) : null}

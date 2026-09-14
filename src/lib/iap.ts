@@ -169,3 +169,19 @@ export async function restoreProIap(): Promise<{ ok: boolean; message?: string }
     return { ok: false, message };
   }
 }
+
+/** Opens Apple’s subscription management sheet (iOS native only). */
+export async function manageProSubscriptions(): Promise<{ ok: boolean; message?: string }> {
+  if (!isNativeIOS()) {
+    return { ok: false, message: "Subscription management is only available in the iOS app." };
+  }
+
+  try {
+    await NativePurchases.manageSubscriptions();
+    return { ok: true };
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "Could not open subscription settings.";
+    return { ok: false, message };
+  }
+}

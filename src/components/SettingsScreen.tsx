@@ -17,6 +17,7 @@ import {
   refreshUsageFromServer,
 } from "@/lib/billing";
 import { confirmCheckoutSession, redeemLifetimePromo } from "@/lib/checkout";
+import { manageProSubscriptions, restoreProIap } from "@/lib/iap";
 import { isNativeIOS } from "@/lib/platform";
 import { loadDocs, saveDocs } from "@/lib/storage";
 
@@ -116,7 +117,7 @@ export function SettingsScreen() {
             >
               Upgrade
             </button>
-          ) : (
+          ) : pro.source === "demo" || pro.source === "promo" ? (
             <button
               type="button"
               onClick={() => {
@@ -127,12 +128,12 @@ export function SettingsScreen() {
               }}
               className="shrink-0 rounded-full bg-chip px-3 py-2 text-[12px] font-medium text-muted"
             >
-              {pro.source === "demo"
-                ? "Clear demo Pro"
-                : pro.source === "promo"
-                  ? "Clear lifetime"
-                  : "Pro"}
+              {pro.source === "demo" ? "Clear demo Pro" : "Clear lifetime"}
             </button>
+          ) : (
+            <span className="shrink-0 rounded-full bg-accent-soft px-3 py-2 text-[12px] font-semibold text-accent">
+              Pro
+            </span>
           )}
         </div>
 
@@ -173,6 +174,50 @@ export function SettingsScreen() {
           </div>
         ) : null}
       </section>
+
+      {isNativeIOS() ? (
+        <section className="rounded-[18px] bg-card p-5 ring-1 ring-rule">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-accent">
+            App Store
+          </p>
+          <p className="mt-1 text-[13px] text-muted">
+            Restore a previous Kept Pro purchase or manage your Apple subscription.
+          </p>
+          <div className="mt-4 flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                void (async () => {
+                  const result = await restoreProIap();
+                  if (!result.ok) {
+                    window.alert(result.message ?? "Restore failed.");
+                    return;
+                  }
+                  refreshBilling();
+                  window.alert("Purchases restored.");
+                })();
+              }}
+              className="w-full rounded-[14px] bg-chip px-4 py-3 text-[14px] font-semibold text-ink"
+            >
+              Restore purchases
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                void (async () => {
+                  const result = await manageProSubscriptions();
+                  if (!result.ok) {
+                    window.alert(result.message ?? "Could not open subscription settings.");
+                  }
+                })();
+              }}
+              className="w-full rounded-[14px] bg-chip px-4 py-3 text-[14px] font-semibold text-ink"
+            >
+              Manage subscription
+            </button>
+          </div>
+        </section>
+      ) : null}
 
       <section className="rounded-[18px] bg-card p-5 ring-1 ring-rule">
         <div className="flex items-center gap-3">

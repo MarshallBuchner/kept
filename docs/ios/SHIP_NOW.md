@@ -2,6 +2,7 @@
 
 Status on code/main (already done):
 - Xcode Cloud **Archive - iOS** green on `main`
+- Native shell: TikTok Pixel off; Settings Restore + Manage subscription; no clear-Pro for IAP
 
 - Web IAP + Stripe gated off in native shell (live on `https://kept-eosin.vercel.app`)
 - Terms/Privacy mention App Store billing
