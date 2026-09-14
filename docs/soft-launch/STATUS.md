@@ -25,7 +25,7 @@ Quick reminder: `npm run ios:iap:next`
 | TestFlight build + Apple-sheet sandbox buy | Human |
 | Submit for Review with IAP | Human |
 
-Latest on PR #65: quiet StoreKit sync (no paid re-fire), foreground re-sync, Capgo `isActive` guard, ASC all-territory availability.
+Latest on PR #65: quiet StoreKit sync (no paid re-fire), foreground + Capgo `transactionUpdated` re-sync, safer Pro clear, Capgo `isActive` guard, ASC all-territory availability + storefront equalizations (workflow fails if those don’t stick).
 
 Repo gate (CI + local): `npm run ios:iap:verify` — product IDs, Stripe gate, restore/manage UI, IAP capability, privacy manifest, build ≥5, live Terms/Privacy. Does **not** prove Connect products or sandbox purchase.
 
