@@ -1,5 +1,7 @@
 # App Store Connect — Kept Pro IAP (do this now)
 
+Short path: **[SHIP_NOW.md](./SHIP_NOW.md)**.
+
 Bundle ID: **`ca.keptapp.app`**  
 App record: **Kept Scan** (or **Kept**)
 
