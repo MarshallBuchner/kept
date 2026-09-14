@@ -22,22 +22,27 @@ if [[ ! -f src/lib/iap.ts ]]; then
   exit 1
 fi
 
-if ! grep -q "$MONTHLY" src/lib/iap.ts || ! grep -q "$YEARLY" src/lib/iap.ts; then
-  echo "Product IDs in src/lib/iap.ts do not match expected:" >&2
-  echo "  $MONTHLY" >&2
-  echo "  $YEARLY" >&2
-  exit 1
-fi
-echo "OK product IDs in src/lib/iap.ts"
-
-if [[ -f ios/App/App/Products.storekit ]]; then
-  if ! grep -q "$MONTHLY" ios/App/App/Products.storekit || ! grep -q "$YEARLY" ios/App/App/Products.storekit; then
-    echo "Products.storekit is missing expected product IDs." >&2
+if [[ -f scripts/verify-iap-ready.mjs ]]; then
+  echo "Running ios:iap:verify (local checks; live URL fetch skipped)…"
+  SKIP_LIVE_FETCH=1 node scripts/verify-iap-ready.mjs
+else
+  if ! grep -q "$MONTHLY" src/lib/iap.ts || ! grep -q "$YEARLY" src/lib/iap.ts; then
+    echo "Product IDs in src/lib/iap.ts do not match expected:" >&2
+    echo "  $MONTHLY" >&2
+    echo "  $YEARLY" >&2
     exit 1
   fi
-  echo "OK Products.storekit"
-else
-  echo "WARN: ios/App/App/Products.storekit missing (optional for local StoreKit testing)"
+  echo "OK product IDs in src/lib/iap.ts"
+
+  if [[ -f ios/App/App/Products.storekit ]]; then
+    if ! grep -q "$MONTHLY" ios/App/App/Products.storekit || ! grep -q "$YEARLY" ios/App/App/Products.storekit; then
+      echo "Products.storekit is missing expected product IDs." >&2
+      exit 1
+    fi
+    echo "OK Products.storekit"
+  else
+    echo "WARN: ios/App/App/Products.storekit missing (optional for local StoreKit testing)"
+  fi
 fi
 
 if [[ -f package-lock.json ]]; then

@@ -121,16 +121,20 @@ if (versions.length && versions.every((v) => v >= 5)) {
   fail("build-number", `expected >= 5, got ${versions.join(",") || "none"}`);
 }
 
-// --- Live production (best-effort) ---
-try {
-  const terms = await fetch(`${PROD}/terms`).then((r) => r.text());
-  if (/App Store|Apple ID|auto-renew/i.test(terms)) ok("prod-terms-iap");
-  else fail("prod-terms-iap", "terms page missing App Store billing copy");
-  const privacy = await fetch(`${PROD}/privacy`).then((r) => r.text());
-  if (/App Store|In-App|Apple ID/i.test(privacy)) ok("prod-privacy-iap");
-  else fail("prod-privacy-iap", "privacy page missing App Store billing copy");
-} catch (err) {
-  fail("prod-fetch", String(err.message || err));
+// --- Live production (best-effort; skip on Mac sync with SKIP_LIVE_FETCH=1) ---
+if (process.env.SKIP_LIVE_FETCH === "1") {
+  ok("prod-fetch", "skipped (SKIP_LIVE_FETCH=1)");
+} else {
+  try {
+    const terms = await fetch(`${PROD}/terms`).then((r) => r.text());
+    if (/App Store|Apple ID|auto-renew/i.test(terms)) ok("prod-terms-iap");
+    else fail("prod-terms-iap", "terms page missing App Store billing copy");
+    const privacy = await fetch(`${PROD}/privacy`).then((r) => r.text());
+    if (/App Store|In-App|Apple ID/i.test(privacy)) ok("prod-privacy-iap");
+    else fail("prod-privacy-iap", "privacy page missing App Store billing copy");
+  } catch (err) {
+    fail("prod-fetch", String(err.message || err));
+  }
 }
 
 // --- Report ---
