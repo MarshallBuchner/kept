@@ -2,6 +2,8 @@
 
 Short path: **[SHIP_NOW.md](./SHIP_NOW.md)**.
 
+Prefer API create when possible: add GitHub secrets `ASC_*` → **Actions → ASC upsert Kept Pro IAP** (or `npm run ios:iap:asc`). That upserts products, localizations, CAN base price + **storefront equalizations**, all-territory availability, review screenshots/notes, and app privacy URL. Still set the **subscription group Privacy Policy URL** + Paid Apps + sandbox in Connect UI.
+
 Bundle ID: **`ca.keptapp.app`**  
 App record: **Kept Scan** (or **Kept**)
 
