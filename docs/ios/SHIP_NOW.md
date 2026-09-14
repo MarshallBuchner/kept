@@ -8,9 +8,10 @@ Status on code/main (already done):
 - Web IAP + Stripe gated off in native shell (live on `https://kept-eosin.vercel.app`)
 - Terms/Privacy mention App Store billing
 - Paywall Apple auto-renew disclosure + Restore
-- Capgo Native Purchases wired (confirm **In-App Purchase** capability in Xcode before Archive)
+- Capgo Native Purchases + **In-App Purchase** capability declared in the Xcode project (StoreKit linked; confirm signing team on Mac before Archive)
 - iOS build **5** (Xcode Cloud auto-bumps via `CI_BUILD_NUMBER`) (`CURRENT_PROJECT_VERSION`)
 - Review screenshot: `docs/ios/screenshots/iap-review-paywall.png` (1290×2796)
+- Run scheme uses `Products.storekit` for local StoreKit testing (Archive/TestFlight still use Connect products)
 
 ## 0) Confirm repo is ready
 

@@ -2,6 +2,7 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- In-App Purchase is enabled via Xcode capability; StoreKit does not require extra entitlement keys. -->
+	<!-- In-App Purchase is enabled on the App target (com.apple.InAppPurchase).
+	     StoreKit does not add entitlement keys to this file. -->
 </dict>
 </plist>

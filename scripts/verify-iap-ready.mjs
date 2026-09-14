@@ -181,6 +181,25 @@ if (versions.length && versions.every((v) => v >= 5)) {
   fail("build-number", `expected >= 5, got ${versions.join(",") || "none"}`);
 }
 
+const pbxRel = "ios/App/App.xcodeproj/project.pbxproj";
+const pbxFull = exists(pbxRel) ? read(pbxRel) : pbx;
+if (pbxFull.includes("com.apple.InAppPurchase") && pbxFull.includes("enabled = 1")) {
+  ok("iap-capability", "com.apple.InAppPurchase enabled in project");
+} else {
+  fail("iap-capability", "SystemCapabilities com.apple.InAppPurchase missing in project.pbxproj");
+}
+if (pbxFull.includes("StoreKit.framework")) {
+  ok("storekit-framework", "StoreKit.framework linked");
+} else {
+  fail("storekit-framework", "StoreKit.framework not linked in project.pbxproj");
+}
+const schemeRel = "ios/App/App.xcodeproj/xcshareddata/xcschemes/App.xcscheme";
+if (exists(schemeRel) && read(schemeRel).includes("Products.storekit")) {
+  ok("storekit-scheme", "Run scheme references Products.storekit");
+} else {
+  fail("storekit-scheme", "App.xcscheme missing StoreKitConfigurationFileReference");
+}
+
 // --- Live production (best-effort; skip on Mac sync with SKIP_LIVE_FETCH=1) ---
 if (process.env.SKIP_LIVE_FETCH === "1") {
   ok("prod-fetch", "skipped (SKIP_LIVE_FETCH=1)");
