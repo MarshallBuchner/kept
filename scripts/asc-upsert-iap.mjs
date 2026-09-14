@@ -26,6 +26,15 @@ import path from "node:path";
 const APP_ID = process.env.ASC_APP_ID || "6811619551";
 const GROUP_ID = process.env.ASC_GROUP_ID || "22382931";
 const BASE_TERRITORY = process.env.ASC_BASE_TERRITORY || "CAN";
+const PRIVACY_URL =
+  process.env.ASC_PRIVACY_URL || "https://kept-eosin.vercel.app/privacy";
+const REVIEW_NOTE =
+  process.env.ASC_REVIEW_NOTE ||
+  "Open Settings → Kept Pro, or hit the paywall after the free limit. Buy uses Apple IAP (not Stripe). Restore Purchases is on the paywall and in Settings.";
+const SCREENSHOT_PATH = path.resolve(
+  process.env.ASC_REVIEW_SCREENSHOT ||
+    "docs/ios/screenshots/iap-review-paywall.png",
+);
 const DRY = process.argv.includes("--dry-run");
 
 const PRODUCTS = [
@@ -266,9 +275,186 @@ async function ensurePrice(token, subscriptionId, product) {
   );
 }
 
+async function ensureGroupLocalizations(token) {
+  console.log("\n— subscription group localizations");
+  const list = await asc(
+    token,
+    "GET",
+    `/v1/subscriptionGroups/${GROUP_ID}/subscriptionGroupLocalizations?limit=50`,
+  );
+  const have = new Set((list.data ?? []).map((l) => l.attributes?.locale));
+  for (const locale of ["en-CA", "en-US"]) {
+    if (have.has(locale)) {
+      console.log(`  group localization ${locale} ok`);
+      continue;
+    }
+    console.log(`  adding group localization ${locale}…`);
+    if (DRY) continue;
+    await asc(token, "POST", "/v1/subscriptionGroupLocalizations", {
+      data: {
+        type: "subscriptionGroupLocalizations",
+        attributes: {
+          locale,
+          name: "Kept Pro",
+        },
+        relationships: {
+          subscriptionGroup: {
+            data: { type: "subscriptionGroups", id: GROUP_ID },
+          },
+        },
+      },
+    });
+  }
+}
+
+async function ensureAppPrivacyUrl(token) {
+  console.log("\n— app privacy policy URL");
+  const infos = await asc(token, "GET", `/v1/apps/${APP_ID}/appInfos?limit=10`);
+  const info = (infos.data ?? [])[0];
+  if (!info) {
+    console.warn("  WARN: no appInfos — set privacy URL in Connect UI");
+    return;
+  }
+  const locs = await asc(
+    token,
+    "GET",
+    `/v1/appInfos/${info.id}/appInfoLocalizations?limit=50`,
+  );
+  for (const loc of locs.data ?? []) {
+    const locale = loc.attributes?.locale;
+    const current = loc.attributes?.privacyPolicyUrl;
+    if (current === PRIVACY_URL) {
+      console.log(`  ${locale}: privacy URL ok`);
+      continue;
+    }
+    console.log(`  ${locale}: set privacy URL → ${PRIVACY_URL}`);
+    if (DRY) continue;
+    try {
+      await asc(token, "PATCH", `/v1/appInfoLocalizations/${loc.id}`, {
+        data: {
+          type: "appInfoLocalizations",
+          id: loc.id,
+          attributes: { privacyPolicyUrl: PRIVACY_URL },
+        },
+      });
+    } catch (err) {
+      console.warn(
+        `  WARN: could not PATCH ${locale} privacy URL (${err.message}). Set in Connect UI.`,
+      );
+    }
+  }
+}
+
+async function uploadBinary(uploadOperations, bytes) {
+  for (const op of uploadOperations ?? []) {
+    const headers = {};
+    for (const h of op.requestHeaders ?? []) {
+      headers[h.name] = h.value;
+    }
+    const start = op.offset ?? 0;
+    const end = start + (op.length ?? bytes.length);
+    const chunk = bytes.subarray(start, end);
+    const res = await fetch(op.url, {
+      method: op.method || "PUT",
+      headers,
+      body: chunk,
+    });
+    if (!res.ok) {
+      throw new Error(`upload ${op.method} ${op.url} → ${res.status}`);
+    }
+  }
+}
+
+async function ensureReviewScreenshot(token, subscriptionId) {
+  if (!subscriptionId) return;
+  if (!fs.existsSync(SCREENSHOT_PATH)) {
+    console.warn(`  WARN: screenshot missing at ${SCREENSHOT_PATH}`);
+    return;
+  }
+
+  // Skip if one already linked
+  try {
+    const existingShot = await asc(
+      token,
+      "GET",
+      `/v1/subscriptions/${subscriptionId}/appStoreReviewScreenshot`,
+    );
+    if (existingShot.data?.id) {
+      console.log(`  review screenshot already linked (${existingShot.data.id})`);
+      return;
+    }
+  } catch {
+    // 404 = none yet
+  }
+
+  const bytes = fs.readFileSync(SCREENSHOT_PATH);
+  const fileName = path.basename(SCREENSHOT_PATH);
+  const fileSize = bytes.length;
+  const checksum = crypto.createHash("md5").update(bytes).digest("hex");
+
+  console.log(`  uploading review screenshot ${fileName} (${fileSize} bytes)…`);
+  if (DRY) return;
+
+  const created = await asc(token, "POST", "/v1/subscriptionAppStoreReviewScreenshots", {
+    data: {
+      type: "subscriptionAppStoreReviewScreenshots",
+      attributes: { fileName, fileSize },
+      relationships: {
+        subscription: {
+          data: { type: "subscriptions", id: subscriptionId },
+        },
+      },
+    },
+  });
+
+  const shotId = created.data.id;
+  const uploadOperations =
+    created.data.attributes?.uploadOperations ||
+    created.included?.find((i) => i.type === "uploadOperations") ||
+    [];
+
+  // Prefer attributes.uploadOperations (ASC returns them on create)
+  const ops = created.data.attributes?.uploadOperations ?? [];
+  await uploadBinary(ops, bytes);
+
+  await asc(token, "PATCH", `/v1/subscriptionAppStoreReviewScreenshots/${shotId}`, {
+    data: {
+      type: "subscriptionAppStoreReviewScreenshots",
+      id: shotId,
+      attributes: {
+        uploaded: true,
+        sourceFileChecksum: checksum,
+      },
+    },
+  });
+  console.log(`  review screenshot committed (${shotId})`);
+}
+
+async function ensureReviewNote(token, subscriptionId) {
+  if (!subscriptionId) return;
+  console.log("  setting review note…");
+  if (DRY) return;
+  try {
+    await asc(token, "PATCH", `/v1/subscriptions/${subscriptionId}`, {
+      data: {
+        type: "subscriptions",
+        id: subscriptionId,
+        attributes: {
+          reviewNote: REVIEW_NOTE,
+        },
+      },
+    });
+    console.log("  review note ok");
+  } catch (err) {
+    console.warn(`  WARN: could not set review note (${err.message})`);
+  }
+}
+
 async function main() {
   console.log("== Kept Pro ASC IAP upsert ==");
   console.log(`app=${APP_ID} group=${GROUP_ID} territory=${BASE_TERRITORY}`);
+  console.log(`privacy=${PRIVACY_URL}`);
+  console.log(`screenshot=${SCREENSHOT_PATH}`);
   if (DRY) console.log("DRY RUN — no writes");
 
   const token = makeToken();
@@ -277,8 +463,11 @@ async function main() {
   const app = await asc(token, "GET", `/v1/apps/${APP_ID}`);
   console.log(`app: ${app.data?.attributes?.name} (${app.data?.attributes?.bundleId})`);
 
+  await ensureGroupLocalizations(token);
+  await ensureAppPrivacyUrl(token);
+
   const existing = await listGroupSubscriptions(token);
-  console.log(`group has ${existing.length} subscription(s)`);
+  console.log(`\ngroup has ${existing.length} subscription(s)`);
 
   for (const product of PRODUCTS) {
     console.log(`\n— ${product.productId}`);
@@ -286,15 +475,16 @@ async function main() {
     const id = sub?.id;
     await ensureLocalization(token, id, product);
     await ensurePrice(token, id, product);
+    await ensureReviewNote(token, id);
+    await ensureReviewScreenshot(token, id);
   }
 
   console.log(`\nDone.
-Next in App Store Connect (still required):
-  1. Review Information screenshot for each product
-     docs/ios/screenshots/iap-review-paywall.png
-  2. Paid Apps agreement Active
-  3. Sandbox tester
-  4. Archive build 5+ → TestFlight sandbox buy → Submit with IAP
+Still required in App Store Connect / on device:
+  1. Paid Apps agreement Active (Business → Agreements)
+  2. Sandbox tester (Users and Access → Sandbox)
+  3. Confirm storefront price equalizations if needed
+  4. Archive build 5+ → TestFlight sandbox buy (Apple sheet) → Submit with IAP
 `);
 }
 
