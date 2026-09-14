@@ -89,7 +89,7 @@ npx cap sync ios
 npx cap open ios
 ```
 
-In Xcode: target **App** → **Signing & Capabilities** → **+ Capability** → **In-App Purchase**.
+In Xcode: target **App** → **Signing & Capabilities** → confirm **In-App Purchase** is listed (already declared in the Xcode project) and your Team is selected.
 
 Test with a Sandbox Apple ID (Settings → App Store → Sandbox Account). Use **Restore purchases** on the paywall if needed.
 

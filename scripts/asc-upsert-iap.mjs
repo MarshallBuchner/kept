@@ -19,7 +19,8 @@
  *   ASC_PRIVACY_URL        (default: https://kept-eosin.vercel.app/privacy)
  *   ASC_REVIEW_SCREENSHOT  (default: docs/ios/screenshots/iap-review-paywall.png)
  *
- * Also upserts: group localizations, app privacy URL, review notes, review screenshots.
+ * Also upserts: group localizations, app privacy URL, review notes, review screenshots,
+ * and subscription territory availability (all storefronts + new territories).
  *
  * Usage:
  *   node scripts/asc-upsert-iap.mjs
@@ -490,6 +491,93 @@ async function ensureReviewNote(token, subscriptionId) {
   }
 }
 
+/** Cache of all App Store territories (id = territory code, e.g. CAN, USA). */
+let cachedTerritories = null;
+async function listAllTerritories(token) {
+  if (cachedTerritories) return cachedTerritories;
+  const out = [];
+  let path = "/v1/territories?limit=200";
+  while (path) {
+    const page = await asc(token, "GET", path);
+    for (const t of page.data ?? []) {
+      if (t.id) out.push({ type: "territories", id: t.id });
+    }
+    const next = page.links?.next;
+    path = next ? next.replace("https://api.appstoreconnect.apple.com", "") : null;
+  }
+  cachedTerritories = out;
+  return out;
+}
+
+/**
+ * Ensure the subscription is available in all storefronts (incl. new territories).
+ * Without this, API-created products can stay unavailable for sandbox buys.
+ */
+async function ensureAvailability(token, subscriptionId) {
+  if (!subscriptionId) return;
+
+  try {
+    const existing = await asc(
+      token,
+      "GET",
+      `/v1/subscriptions/${subscriptionId}/subscriptionAvailability?include=availableTerritories&limit[availableTerritories]=50`,
+    );
+    if (existing.data?.id) {
+      const inNew = existing.data.attributes?.availableInNewTerritories;
+      const included = (existing.included ?? []).filter(
+        (r) => r.type === "territories",
+      ).length;
+      // Heuristic: already configured if availableInNewTerritories and at least one territory
+      if (inNew === true && included > 0) {
+        console.log(
+          `  availability ok (id=${existing.data.id}, territories≈${included}+, newTerritories=true)`,
+        );
+        return;
+      }
+      console.log(
+        `  availability exists but incomplete (newTerritories=${inNew}, territories≈${included}) — re-posting all territories…`,
+      );
+    }
+  } catch (err) {
+    if (err.status && err.status !== 404) {
+      console.warn(`  WARN: could not read availability (${err.message})`);
+    } else {
+      console.log("  no availability yet — setting all territories…");
+    }
+  }
+
+  const territories = await listAllTerritories(token);
+  if (territories.length === 0) {
+    console.warn("  WARN: no territories returned — set Availability in Connect UI");
+    return;
+  }
+
+  console.log(
+    `  setting availability: ${territories.length} territories, availableInNewTerritories=true…`,
+  );
+  if (DRY) return;
+
+  try {
+    await asc(token, "POST", "/v1/subscriptionAvailabilities", {
+      data: {
+        type: "subscriptionAvailabilities",
+        attributes: { availableInNewTerritories: true },
+        relationships: {
+          subscription: {
+            data: { type: "subscriptions", id: subscriptionId },
+          },
+          availableTerritories: { data: territories },
+        },
+      },
+    });
+    console.log("  availability ok");
+  } catch (err) {
+    console.warn(
+      `  WARN: could not set availability (${err.message}). Set Availability → All Countries in Connect UI.`,
+    );
+  }
+}
+
 async function main() {
   console.log("== Kept Pro ASC IAP upsert ==");
   console.log(`app=${APP_ID} group=${GROUP_ID} territory=${BASE_TERRITORY}`);
@@ -515,6 +603,7 @@ async function main() {
     const id = sub?.id;
     await ensureLocalization(token, id, product);
     await ensurePrice(token, id, product);
+    await ensureAvailability(token, id);
     await ensureReviewNote(token, id);
     await ensureReviewScreenshot(token, id);
   }
@@ -525,7 +614,7 @@ Still required in App Store Connect / on device:
   2. Paid Apps agreement Active (Business → Agreements)
   3. Sandbox tester (Users and Access → Sandbox)
   4. Confirm storefront price equalizations if needed
-  5. Xcode: confirm In-App Purchase capability → Archive build 5+ → TestFlight
+  5. Merge IAP PR → Xcode Cloud Deploy to TestFlight (or Mac Archive build 5+)
   6. Sandbox buy (Apple sheet, not Stripe) + Restore → Submit with IAP
 `);
 }

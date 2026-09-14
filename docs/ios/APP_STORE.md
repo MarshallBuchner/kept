@@ -144,9 +144,9 @@ Local Xcode StoreKit config: `ios/App/App/Products.storekit`.
 ## Ship order
 
 1. Merge Capacitor / IAP PR → deploy web to Vercel (shell loads prod URL)  
-2. Mac: `npm ci && npx cap sync ios && npx cap open ios`  
-3. Xcode → Signing & Capabilities → add **In-App Purchase**  
-4. Archive → Upload → TestFlight (Sandbox Apple ID to buy)  
+2. Mac: `npm ci && npx cap sync ios && npx cap open ios` (or `./scripts/ios-iap-sync.sh`)  
+3. Xcode → Signing & Capabilities → confirm **In-App Purchase** is present + Team selected  
+4. Archive → Upload → TestFlight (Sandbox Apple ID to buy) — or Xcode Cloud Deploy to TestFlight  
 5. Fill metadata + screenshots  
 6. **Submit for Review** only after IAP products are Ready to Submit
 

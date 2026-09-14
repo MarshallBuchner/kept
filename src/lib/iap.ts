@@ -32,14 +32,56 @@ function planForProductId(productId: string): CheckoutPlan | null {
   return null;
 }
 
-function unlockFromIap(plan: CheckoutPlan, transactionId?: string) {
+/**
+ * Unlock Pro from a StoreKit purchase/restore.
+ * `trackPaid` only for fresh purchases — quiet sync must not re-fire analytics
+ * or reset `activatedAt` every launch.
+ */
+function unlockFromIap(
+  plan: CheckoutPlan,
+  transactionId?: string,
+  options?: { trackPaid?: boolean },
+) {
+  const trackPaid = options?.trackPaid ?? true;
+  const existing = getPro();
+  const alreadyIap =
+    existing.active && existing.source === "iap" && existing.activatedAt;
+
   setPro({
     source: "iap",
     sessionId: transactionId,
+    // Preserve original activation time across launch sync / restore.
+    activatedAt: alreadyIap ? existing.activatedAt : undefined,
   });
-  track("paid", {
-    plan: plan === "yearly" ? "pro_yearly" : "pro_monthly",
-    source: "iap",
+
+  if (trackPaid) {
+    track("paid", {
+      plan: plan === "yearly" ? "pro_yearly" : "pro_monthly",
+      source: "iap",
+    });
+  }
+}
+
+/** Active Kept Pro subscription entitlement from Capgo Transaction list. */
+function findActiveKeptEntitlement(
+  purchases: Array<{
+    productIdentifier: string;
+    transactionId?: string;
+    isActive?: boolean;
+    expirationDate?: string;
+  }>,
+) {
+  return purchases.find((p) => {
+    if (!planForProductId(p.productIdentifier)) return false;
+    // Capgo: prefer isActive; fall back to future expirationDate when present.
+    if (p.isActive === true) return true;
+    if (p.isActive === false) return false;
+    if (p.expirationDate) {
+      const exp = Date.parse(p.expirationDate);
+      return Number.isFinite(exp) && exp > Date.now();
+    }
+    // onlyCurrentEntitlements without isActive — treat as current.
+    return true;
   });
 }
 
@@ -156,13 +198,15 @@ export async function restoreProIap(): Promise<{ ok: boolean; message?: string }
       onlyCurrentEntitlements: true,
     });
 
-    const kept = purchases.find((p) => planForProductId(p.productIdentifier));
+    const kept = findActiveKeptEntitlement(purchases);
     if (!kept) {
       return { ok: false, message: "No Kept Pro subscription found for this Apple ID." };
     }
 
     const plan = planForProductId(kept.productIdentifier) ?? "yearly";
-    unlockFromIap(plan, kept.transactionId);
+    // Restore is an explicit user action — track paid only if newly unlocked.
+    const wasPro = getPro().active && getPro().source === "iap";
+    unlockFromIap(plan, kept.transactionId, { trackPaid: !wasPro });
     return { ok: true, message: "restored" };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Could not restore purchases.";
@@ -200,10 +244,10 @@ export async function syncProFromStoreKit(): Promise<void> {
       onlyCurrentEntitlements: true,
     });
 
-    const kept = purchases.find((p) => planForProductId(p.productIdentifier));
+    const kept = findActiveKeptEntitlement(purchases);
     if (kept) {
       const plan = planForProductId(kept.productIdentifier) ?? "yearly";
-      unlockFromIap(plan, kept.transactionId);
+      unlockFromIap(plan, kept.transactionId, { trackPaid: false });
       return;
     }
 

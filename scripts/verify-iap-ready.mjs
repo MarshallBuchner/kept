@@ -36,15 +36,20 @@ const requiredFiles = [
   "src/lib/platform.ts",
   "src/components/PaywallSheet.tsx",
   "src/components/SettingsScreen.tsx",
+  "src/components/IapEntitlementSync.tsx",
   "scripts/asc-upsert-iap.mjs",
   "scripts/ios-iap-sync.sh",
+  "scripts/marshall-iap-next.sh",
   "docs/ios/SHIP_NOW.md",
+  "docs/ios/CONNECT_IAP.md",
+  "docs/ios/MAC.md",
   "docs/ios/screenshots/iap-review-paywall.png",
   "ios/App/App/Products.storekit",
   "ios/App/App/PrivacyInfo.xcprivacy",
   "ios/App/ci_scripts/ci_post_clone.sh",
   "ios/App/ci_scripts/ci_pre_xcodebuild.sh",
   ".github/workflows/asc-upsert-iap.yml",
+  ".github/workflows/verify-iap-ready.yml",
   "capacitor.config.ts",
 ];
 for (const rel of requiredFiles) {
@@ -78,6 +83,74 @@ if (platform.includes("isNativeIOS") && checkout.includes("isNativeIOS")) {
   ok("stripe-gate", "checkout uses isNativeIOS");
 } else {
   fail("stripe-gate", "checkout/platform missing isNativeIOS gate");
+}
+if (checkout.includes("purchaseProIap")) {
+  ok("checkout-iap-path", "checkout calls purchaseProIap");
+} else {
+  fail("checkout-iap-path", "checkout.ts must call purchaseProIap on native");
+}
+
+// --- package scripts + Capgo dep ---
+const pkg = exists("package.json") ? read("package.json") : "";
+for (const script of ["ios:iap:verify", "ios:iap:asc", "ios:iap:sync", "ios:iap:next"]) {
+  if (pkg.includes(`"${script}"`)) ok(`npm-script:${script}`);
+  else fail(`npm-script:${script}`, "missing in package.json");
+}
+if (pkg.includes("@capgo/native-purchases")) ok("dep:@capgo/native-purchases");
+else fail("dep:@capgo/native-purchases", "missing from package.json");
+if (pkg.includes("@capacitor/app")) ok("dep:@capacitor/app");
+else fail("dep:@capacitor/app", "needed for foreground entitlement re-sync");
+
+const spm = exists("ios/App/CapApp-SPM/Package.swift")
+  ? read("ios/App/CapApp-SPM/Package.swift")
+  : "";
+if (/native-purchases|NativePurchases/i.test(spm)) {
+  ok("spm:capgo-native-purchases");
+} else {
+  fail("spm:capgo-native-purchases", "CapApp-SPM Package.swift missing Capgo dep");
+}
+
+// --- Active entitlement guard + quiet sync ---
+if (iap.includes("findActiveKeptEntitlement") || iap.includes("isActive")) {
+  ok("iap-active-guard", "entitlement reads check isActive / expiration");
+} else {
+  fail("iap-active-guard", "iap.ts should prefer isActive for iOS subscriptions");
+}
+if (iap.includes("trackPaid: false") || iap.includes("trackPaid?: boolean")) {
+  ok("iap-quiet-sync", "sync path can skip paid analytics");
+} else {
+  fail("iap-quiet-sync", "syncProFromStoreKit must not re-fire paid on every launch");
+}
+const entitlementSync = exists("src/components/IapEntitlementSync.tsx")
+  ? read("src/components/IapEntitlementSync.tsx")
+  : "";
+if (entitlementSync.includes("appStateChange")) {
+  ok("iap-foreground-sync", "re-syncs on app foreground");
+} else {
+  fail("iap-foreground-sync", "IapEntitlementSync should listen for appStateChange");
+}
+
+// --- ASC upsert covers availability ---
+if (asc.includes("subscriptionAvailabilities") || asc.includes("ensureAvailability")) {
+  ok("asc-availability", "upsert sets territory availability");
+} else {
+  fail("asc-availability", "asc-upsert-iap.mjs should POST subscriptionAvailabilities");
+}
+
+// --- Repo Terms/Privacy IAP copy (in addition to live fetch) ---
+const termsBlob = exists("src/app/terms/page.tsx") ? read("src/app/terms/page.tsx") : "";
+const privacyBlob = exists("src/app/privacy/page.tsx")
+  ? read("src/app/privacy/page.tsx")
+  : "";
+if (/App Store|Apple ID|auto-renew/i.test(termsBlob)) {
+  ok("repo-terms-iap", "terms page mentions App Store billing");
+} else {
+  fail("repo-terms-iap", "src/app/terms/page.tsx missing App Store billing copy");
+}
+if (/App Store|In-App|Apple ID/i.test(privacyBlob)) {
+  ok("repo-privacy-iap", "privacy page mentions App Store billing");
+} else {
+  fail("repo-privacy-iap", "src/app/privacy/page.tsx missing App Store billing copy");
 }
 
 // --- Restore / manage ---
