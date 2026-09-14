@@ -14,6 +14,8 @@
 
 Follow **[`docs/ios/SHIP_NOW.md`](../ios/SHIP_NOW.md)** end-to-end.
 
+Repo gate (CI + local): `npm run ios:iap:verify` — product IDs, Stripe gate, restore/manage UI, build ≥5, live Terms/Privacy. Does **not** prove Connect products or sandbox purchase.
+
 Fast Connect path:
 
 1. Create ASC API key → add GitHub secrets `ASC_ISSUER_ID`, `ASC_KEY_ID`, `ASC_PRIVATE_KEY`

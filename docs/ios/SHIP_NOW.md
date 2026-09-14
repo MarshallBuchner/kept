@@ -11,6 +11,17 @@ Status on code/main (already done):
 - iOS build **5** (Xcode Cloud auto-bumps via `CI_BUILD_NUMBER`) (`CURRENT_PROJECT_VERSION`)
 - Review screenshot: `docs/ios/screenshots/iap-review-paywall.png`
 
+## 0) Confirm repo is ready
+
+```bash
+git pull
+npm run ios:iap:verify            # product IDs, Stripe gate, restore UI, build ≥5, live legal
+# Optional ASC dry-run (needs secrets or .p8):
+npm run ios:iap:asc -- --dry-run
+```
+
+CI also runs `ios:iap:verify` on pushes/PRs that touch the repo (`Verify IAP repo readiness`).
+
 ## A) App Store Connect (you)
 
 1. **Monthly** Review Information → upload  

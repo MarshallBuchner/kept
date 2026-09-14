@@ -1,0 +1,24 @@
+name: Verify IAP repo readiness
+
+# Fails if code/docs/artifacts for StoreKit IAP ship path are incomplete.
+# Does not prove Connect products, sandbox purchase, or App Review submit.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify IAP readiness
+        run: node scripts/verify-iap-ready.mjs
