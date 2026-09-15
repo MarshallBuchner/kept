@@ -22,22 +22,27 @@ if [[ ! -f src/lib/iap.ts ]]; then
   exit 1
 fi
 
-if ! grep -q "$MONTHLY" src/lib/iap.ts || ! grep -q "$YEARLY" src/lib/iap.ts; then
-  echo "Product IDs in src/lib/iap.ts do not match expected:" >&2
-  echo "  $MONTHLY" >&2
-  echo "  $YEARLY" >&2
-  exit 1
-fi
-echo "OK product IDs in src/lib/iap.ts"
-
-if [[ -f ios/App/App/Products.storekit ]]; then
-  if ! grep -q "$MONTHLY" ios/App/App/Products.storekit || ! grep -q "$YEARLY" ios/App/App/Products.storekit; then
-    echo "Products.storekit is missing expected product IDs." >&2
+if [[ -f scripts/verify-iap-ready.mjs ]]; then
+  echo "Running ios:iap:verify (local checks; live URL fetch skipped)…"
+  SKIP_LIVE_FETCH=1 node scripts/verify-iap-ready.mjs
+else
+  if ! grep -q "$MONTHLY" src/lib/iap.ts || ! grep -q "$YEARLY" src/lib/iap.ts; then
+    echo "Product IDs in src/lib/iap.ts do not match expected:" >&2
+    echo "  $MONTHLY" >&2
+    echo "  $YEARLY" >&2
     exit 1
   fi
-  echo "OK Products.storekit"
-else
-  echo "WARN: ios/App/App/Products.storekit missing (optional for local StoreKit testing)"
+  echo "OK product IDs in src/lib/iap.ts"
+
+  if [[ -f ios/App/App/Products.storekit ]]; then
+    if ! grep -q "$MONTHLY" ios/App/App/Products.storekit || ! grep -q "$YEARLY" ios/App/App/Products.storekit; then
+      echo "Products.storekit is missing expected product IDs." >&2
+      exit 1
+    fi
+    echo "OK Products.storekit"
+  else
+    echo "WARN: ios/App/App/Products.storekit missing (optional for local StoreKit testing)"
+  fi
 fi
 
 if [[ -f package-lock.json ]]; then
@@ -58,11 +63,21 @@ echo "Syncing Capacitor iOS…"
 npx cap sync ios
 
 echo
-echo "Next in Xcode:"
-echo "  1) Signing & Capabilities → + → In-App Purchase"
-echo "  2) (Optional) Scheme → Run → Options → StoreKit Configuration → Products.storekit"
-echo "  3) Any iOS Device → Product → Archive → Upload (build should be 5+)"
-echo "  4) Connect: create $MONTHLY + $YEARLY if not done — see docs/ios/CONNECT_IAP.md"
+if grep -q 'com.apple.InAppPurchase' ios/App/App.xcodeproj/project.pbxproj 2>/dev/null; then
+  echo "OK In-App Purchase capability declared in project.pbxproj"
+else
+  echo "WARN: com.apple.InAppPurchase not found in project — add capability in Xcode before Archive" >&2
+fi
+
+echo
+echo "Next:"
+echo "  0) Merge PR #65 if not on main yet, then git pull"
+echo "  1) Connect: npm run ios:iap:next   (or Actions → ASC upsert Kept Pro IAP)"
+echo "  2) Prefer: App Store Connect → Xcode Cloud → workflow → Post-Actions → TestFlight"
+echo "     (Archive on main is already green — enable Deploy to TestFlight if missing)"
+echo "  3) Else Mac: Xcode → Team selected → Product → Archive → TestFlight"
+echo "  4) Sandbox buy (Apple sheet) → Restore → Submit with IAP"
+echo "  Checklist: docs/ios/SHIP_NOW.md"
 echo
 echo "Opening Xcode…"
 npx cap open ios

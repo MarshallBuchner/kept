@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { IapEntitlementSync } from "@/components/IapEntitlementSync";
 import { TikTokAttributionCapture } from "@/components/TikTokAttributionCapture";
 import { TikTokPixel } from "@/components/TikTokPixel";
 import "./globals.css";
@@ -64,6 +65,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en" className={`${keptSans.variable} h-full antialiased`}>
       <body className={`${keptSans.className} min-h-full bg-paper text-ink`}>
         {children}
+        <IapEntitlementSync />
         <Analytics />
         <SpeedInsights />
         <TikTokAttributionCapture />

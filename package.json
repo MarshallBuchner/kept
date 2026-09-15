@@ -11,7 +11,9 @@
     "cap:sync:ios": "npx cap sync ios",
     "cap:open:ios": "npx cap open ios",
     "ios:iap:sync": "./scripts/ios-iap-sync.sh",
-    "ios:iap:asc": "node scripts/asc-upsert-iap.mjs"
+    "ios:iap:asc": "node scripts/asc-upsert-iap.mjs",
+    "ios:iap:verify": "node scripts/verify-iap-ready.mjs",
+    "ios:iap:next": "./scripts/marshall-iap-next.sh"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.1",
