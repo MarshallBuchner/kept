@@ -233,6 +233,22 @@ export async function manageProSubscriptions(): Promise<{ ok: boolean; message?:
 /** Consecutive empty entitlement reads — avoid clearing Pro on a single flaky StoreKit read. */
 let emptyEntitlementStreak = 0;
 
+/** After a fresh StoreKit buy, skip clearing Pro briefly while entitlements catch up. */
+const IAP_CLEAR_GRACE_MS = 5 * 60 * 1000;
+
+function recentlyUnlockedIap(): boolean {
+  const pro = getPro();
+  if (!pro.active || pro.source !== "iap" || !pro.activatedAt) return false;
+  const at = Date.parse(pro.activatedAt);
+  return Number.isFinite(at) && Date.now() - at < IAP_CLEAR_GRACE_MS;
+}
+
+function clearIapProUnlessGrace(): void {
+  if (recentlyUnlockedIap()) return;
+  const pro = getPro();
+  if (pro.active && pro.source === "iap") clearPro();
+}
+
 /**
  * Quiet StoreKit entitlement sync for native iOS.
  * Unlocks Pro when an active Kept subscription exists; clears IAP Pro when none.
@@ -263,31 +279,28 @@ export async function syncProFromStoreKit(): Promise<void> {
       return;
     }
 
-    // Explicit inactive Kept entitlement → clear immediately.
+    // Explicit inactive Kept entitlement → clear (unless just purchased — sandbox lag).
     const keptInactive = purchases.find((p) => {
       if (!planForProductId(p.productIdentifier)) return false;
       return p.isActive === false;
     });
     if (keptInactive) {
       emptyEntitlementStreak = 0;
-      const pro = getPro();
-      if (pro.active && pro.source === "iap") clearPro();
+      clearIapProUnlessGrace();
       return;
     }
 
     if (purchases.length === 0) {
       emptyEntitlementStreak += 1;
-      // Require two consecutive empties so a single bad read can't wipe a sandbox/Review buy.
-      if (emptyEntitlementStreak < 2) return;
-      const pro = getPro();
-      if (pro.active && pro.source === "iap") clearPro();
+      // Require three consecutive empties so a single bad read can't wipe a sandbox/Review buy.
+      if (emptyEntitlementStreak < 3) return;
+      clearIapProUnlessGrace();
       return;
     }
 
     // Non-empty list with no Kept products — leave non-IAP Pro alone; clear IAP Pro.
     emptyEntitlementStreak = 0;
-    const pro = getPro();
-    if (pro.active && pro.source === "iap") clearPro();
+    clearIapProUnlessGrace();
   } catch {
     // Ignore StoreKit sync failures — Restore remains available on paywall/settings.
   }

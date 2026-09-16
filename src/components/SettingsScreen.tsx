@@ -12,8 +12,6 @@ import {
   clearPro,
   getPro,
   getUsage,
-  isPro,
-  planLabel,
   refreshUsageFromServer,
 } from "@/lib/billing";
 import { confirmCheckoutSession, redeemLifetimePromo } from "@/lib/checkout";
@@ -38,11 +36,31 @@ export function SettingsScreen() {
     setProState(getPro());
   }
 
+  const planTitle =
+    !pro.active || pro.source === "none"
+      ? "Free"
+      : pro.source === "promo"
+        ? "Kept Pro · lifetime"
+        : "Kept Pro";
+
   useEffect(() => {
     setCount(loadDocs().length);
     setFeedback(feedbackSummary());
     refreshBilling();
     void refreshUsageFromServer().then(() => refreshBilling());
+  }, []);
+
+  // Keep Plan label in sync after IAP unlock / background entitlement sync.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refreshBilling();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    const id = window.setInterval(() => refreshBilling(), 2000);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.clearInterval(id);
+    };
   }, []);
 
   useEffect(() => {
@@ -95,21 +113,21 @@ export function SettingsScreen() {
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-accent">Plan</p>
-            <h2 className="mt-1 text-[18px] font-semibold">{planLabel()}</h2>
+            <h2 className="mt-1 text-[18px] font-semibold">{planTitle}</h2>
             <p className="mt-1 text-[13px] text-muted">
-              {isPro()
+              {pro.active
                 ? pro.source === "promo"
                   ? "Lifetime access on this device — scans & exports unlimited."
                   : "Unlimited scans and PDF exports on this device."
                 : `${usage.scans}/${FREE_SCANS_PER_MONTH} scans · ${usage.exports}/${FREE_EXPORTS_PER_MONTH} exports this month`}
             </p>
-            {!isPro() ? (
+            {!pro.active ? (
               <p className="mt-2 text-[12px] text-muted">
                 Free limits sync online so clearing the home-screen app doesn&apos;t reset them.
               </p>
             ) : null}
           </div>
-          {!isPro() ? (
+          {!pro.active ? (
             <button
               type="button"
               onClick={() => setPaywallOpen(true)}
@@ -137,7 +155,7 @@ export function SettingsScreen() {
           )}
         </div>
 
-        {!isPro() ? (
+        {!pro.active ? (
           <div className="mt-4 border-t border-rule pt-4">
             <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-muted">
               Promo code
