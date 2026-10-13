@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   IconBack,
   IconCopy,
@@ -14,6 +14,8 @@ import {
 import { PaywallSheet, type PaywallReason } from "@/components/PaywallSheet";
 import { track } from "@/lib/analytics";
 import { canExport, consumeExport, refreshUsageFromServer } from "@/lib/billing";
+import { exportNativePdf } from "@/lib/native-pdf";
+import { isNativeIOS } from "@/lib/platform";
 import { encodeShare } from "@/lib/share";
 import { deleteDoc, getDoc, updateDoc } from "@/lib/storage";
 import { CATEGORY_LABEL, DOC_TAGS, type DocTag, type KeptDoc } from "@/lib/types";
@@ -25,6 +27,9 @@ export function DocumentScreen({ id }: { id: string }) {
   const [doc, setDoc] = useState<KeptDoc | null>(null);
   const [copied, setCopied] = useState(false);
   const [notes, setNotes] = useState("");
+  const exportLock = useRef(false);
+  const [exportBusy, setExportBusy] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
   const [printMode, setPrintMode] = useState<PrintMode | null>(null);
   const [paywall, setPaywall] = useState<PaywallReason | null>(null);
@@ -98,22 +103,42 @@ export function DocumentScreen({ id }: { id: string }) {
     })();
   }
 
-  function runExport(mode: PrintMode) {
-    void (async () => {
-      // Re-check + meter at print time — sheet open alone must not consume the free export.
-      const gate = await consumeExport();
-      if (!gate.allowed) {
+  async function runExport(mode: PrintMode) {
+    if (exportLock.current || !doc) return;
+    exportLock.current = true;
+    setExportBusy(true);
+    setExportError(null);
+    try {
+      await refreshUsageFromServer();
+      if (!canExport()) {
         setExportOpen(false);
         setPaywall("export_limit");
         return;
       }
-      setExportOpen(false);
+      if (isNativeIOS()) {
+        const result = await exportNativePdf(doc, mode, notes);
+        if (!result.completed) return;
+        // Failed or cancelled shares must not consume the free export.
+        await consumeExport();
+        setExportOpen(false);
+      } else {
+        const gate = await consumeExport();
+        if (!gate.allowed) {
+          setExportOpen(false);
+          setPaywall("export_limit");
+          return;
+        }
+        setExportOpen(false);
+        setPrintMode(mode);
+        window.setTimeout(() => window.print(), 50);
+      }
       track("export_clicked", { surface: "document", mode });
-      setPrintMode(mode);
-      window.setTimeout(() => {
-        window.print();
-      }, 50);
-    })();
+    } catch {
+      setExportError("Could not export the PDF. Please try again.");
+    } finally {
+      exportLock.current = false;
+      setExportBusy(false);
+    }
   }
 
   function toggleTag(tag: DocTag) {
@@ -274,18 +299,20 @@ export function DocumentScreen({ id }: { id: string }) {
           <div className="relative w-full max-w-[430px] rounded-t-[22px] bg-card px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4 shadow-lg">
             <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-rule" />
             <h2 className="text-[18px] font-semibold text-ink">Export PDF</h2>
-            <p className="mt-1 text-[13px] text-muted">Choose what to save or share.</p>
+            <p className="mt-1 text-[13px] text-muted">{exportBusy ? "Preparing PDF…" : "Choose what to save or share."}</p>
+            {exportError ? <p role="alert" className="mt-3 text-[13px] text-danger">{exportError}</p> : null}
             <div className="mt-4 space-y-2">
               <ExportChoice
                 title="Itemized list"
                 detail="Clean merchant, date, line items, and total — best for expenses."
-                onClick={() => runExport("itemized")}
+                onClick={() => void runExport("itemized")}
+                disabled={exportBusy}
               />
               <ExportChoice
                 title="Receipt photo"
                 detail="The scanned image as proof of purchase."
-                onClick={() => runExport("photo")}
-                disabled={!receiptImage}
+                onClick={() => void runExport("photo")}
+                disabled={exportBusy || !receiptImage}
               />
             </div>
             <button

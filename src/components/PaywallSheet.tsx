@@ -86,12 +86,28 @@ export function PaywallSheet({
 
   function priceFor(planChoice: CheckoutPlan, fallback: string): string {
     const fromStore = iapProducts.find((p) => p.plan === planChoice)?.priceString;
-    return fromStore || fallback;
+    return nativeIOS ? fromStore || "Unavailable" : fallback;
   }
 
   async function upgrade() {
     setBusy(true);
     setError(null);
+    if (nativeIOS) {
+      const fresh = await loadIapProducts();
+      const displayed = iapProducts.find((p) => p.plan === plan);
+      const current = fresh.products.find((p) => p.plan === plan);
+      setIapProducts(fresh.products);
+      if (!fresh.ok || !current) {
+        setBusy(false);
+        setError(fresh.message || "This subscription is unavailable. Try again later.");
+        return;
+      }
+      if (!displayed || displayed.priceString !== current.priceString) {
+        setBusy(false);
+        setError("The App Store price changed. Review the updated price and tap Upgrade again.");
+        return;
+      }
+    }
     const result = await startProCheckout(plan);
     setBusy(false);
     if (!result.ok) {
@@ -183,7 +199,7 @@ export function PaywallSheet({
 
         <button
           type="button"
-          disabled={busy || iapLoading || (nativeIOS && iapProducts.length === 0)}
+          disabled={busy || iapLoading || (nativeIOS && !iapProducts.some((p) => p.plan === plan))}
           onClick={() => void upgrade()}
           className="mt-4 w-full rounded-[16px] bg-accent px-4 py-[15px] text-[16px] font-semibold text-white disabled:opacity-60"
         >

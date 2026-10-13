@@ -113,12 +113,14 @@ export async function loadIapProducts(): Promise<{
     const mapped: IapProductInfo[] = [];
     for (const product of products) {
       const plan = planForProductId(product.identifier);
-      if (!plan) continue;
+      if (!plan || !product.priceString?.trim()) continue;
       mapped.push({
         id: product.identifier,
         plan,
         title: product.title || (plan === "yearly" ? "Yearly" : "Monthly"),
-        priceString: product.priceString || (plan === "yearly" ? "CA$19.99" : "CA$2.99"),
+        priceString: product.currencyCode
+          ? `${product.priceString} ${product.currencyCode}`
+          : product.priceString,
       });
     }
 
